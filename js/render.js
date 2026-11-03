@@ -7,6 +7,9 @@ import {
   T_MOUNTAIN, T_SAND, T_SNOW, T_SWAMP, T_WATER,
 } from "./data.js";
 import { effective, heroAt, inVision, objectAt, remembered, townAt } from "./engine.js";
+import {
+  SPR, bodySrc, drawClouds, drawFigure, drawGround, drawRiver, groundSrc, imageSync as painted, preloadWorld, prime as primeArt, rideSrc, torch,
+} from "./visual.js";
 
 export const TW = 96;
 export const TH = 48;
@@ -201,14 +204,28 @@ export function drawMap(ctx, state, view) {
       continue;
     }
     const type = state.map.terrain[i];
-    const sprite = tileCanvas(type, (x * 3 + y * 5) % 3);
+    const gsrc = groundSrc(type, x, y);
+    primeArt(gsrc);
+    const gimg = painted(gsrc);
     ctx.save();
     ctx.translate(s.x, s.y);
-    ctx.drawImage(sprite, -dw / 2 - 0.6, -dh / 2 - 0.6, dw + 1.2, dh + 1.2);
+    if (!drawGround(ctx, gimg, dw, dh, type, time, x, y)) {
+      const sprite = tileCanvas(type, (x * 3 + y * 5) % 3);
+      ctx.drawImage(sprite, -dw / 2 - 0.6, -dh / 2 - 0.6, dw + 1.2, dh + 1.2);
+    }
     const flags = state.map.flags[i];
-    if (flags & FLAG_ROAD) paintRoad(ctx, dw, dh);
-    if (flags & FLAG_RIVER) paintRiver(ctx, dw, dh, time, flags & FLAG_FORD);
-    if (type === T_WATER) paintWaterShine(ctx, dw, dh, time, x, y);
+    if (flags & FLAG_ROAD && type !== T_WATER && type !== T_MOUNTAIN) {
+      primeArt("art/tiles/road.jpg");
+      const road = painted("art/tiles/road.jpg");
+      if (road) {
+        ctx.save();
+        ctx.globalAlpha = 0.92;
+        drawGround(ctx, road, dw * 0.78, dh * 0.42, T_DIRT, time, x, y);
+        ctx.restore();
+      } else paintRoad(ctx, dw, dh);
+    }
+    if (flags & FLAG_RIVER) drawRiver(ctx, dw, dh, time, flags & FLAG_FORD);
+    if (type === T_WATER && !gimg) paintWaterShine(ctx, dw, dh, time, x, y);
     if (pathSet.has(x + "," + y)) {
       ctx.globalAlpha = 0.45;
       drawDiamond(ctx, 0, 0, dw * 0.78, dh * 0.78, "rgba(231,197,106,.9)");
@@ -216,8 +233,8 @@ export function drawMap(ctx, state, view) {
     }
     ctx.restore();
     const vis = inVision(state, playerId, x, y);
-    if ((type === T_FOREST || type === T_HILL) && vis) drawTrees(ctx, s.x, s.y, cam.zoom, type, x, y);
-    if (type === T_MOUNTAIN && vis) drawMountain(ctx, s.x, s.y, cam.zoom, x, y);
+    if ((type === T_FOREST || type === T_HILL) && vis) drawForestSprite(ctx, s.x, s.y, cam.zoom, time, x, y, type);
+    if (type === T_MOUNTAIN && vis) drawPeak(ctx, s.x, s.y, cam.zoom, time, x);
     if (!vis) {
       ctx.save();
       ctx.translate(s.x, s.y);
@@ -240,6 +257,7 @@ export function drawMap(ctx, state, view) {
   props.sort((a, b) => a.k - b.k);
   for (const p of props) p.draw();
 
+  drawClouds(ctx, w, h, time);
   const vg = ctx.createRadialGradient(w / 2, h / 2, h * 0.2, w / 2, h / 2, h * 0.72);
   vg.addColorStop(0, "rgba(0,0,0,0)");
   vg.addColorStop(1, "rgba(0,0,0,.28)");
@@ -286,6 +304,23 @@ function paintWaterShine(ctx, dw, dh, time, x, y) {
   const ox = ((time / 30 + x * 10) % dw) - dw / 2;
   ctx.fillRect(ox, -dh / 2, dw * 0.08, dh);
   ctx.restore();
+}
+function drawForestSprite(ctx, x, y, z, time, tx, ty, type) {
+  primeArt(SPR.tree);
+  const img = painted(SPR.tree);
+  if (!img) { drawTrees(ctx, x, y, z, type, tx, ty); return; }
+  const n = type === T_FOREST ? 2 : 1;
+  for (let i = 0; i < n; i++) {
+    const ox = (i === 0 ? -8 : 10) * z;
+    const h = (type === T_FOREST ? 46 : 34) * z * (i ? 0.82 : 1);
+    drawFigure(ctx, img, x + ox, y + 6 * z, h, time, { seed: tx * 9 + ty + i * 4, bob: 0.4, sway: 0.045 });
+  }
+}
+function drawPeak(ctx, x, y, z, time, tx) {
+  primeArt(SPR.mountain);
+  const img = painted(SPR.mountain);
+  if (!img) { drawMountain(ctx, x, y, z); return; }
+  drawFigure(ctx, img, x, y + 8 * z, 58 * z, time + tx, { bob: 0, sway: 0.004, seed: tx });
 }
 function drawTrees(ctx, x, y, z, type, tx, ty) {
   const rng = mulberry(tx * 17 + ty * 31);
@@ -338,41 +373,29 @@ function drawMountain(ctx, x, y, z) {
 
 function drawTown(ctx, state, town, cam, w, h, time) {
   const c = tileCenter(town.x, town.y);
-  const s = toScreen(c.x, c.y - 8, cam, w, h);
+  const s = toScreen(c.x, c.y - 4, cam, w, h);
   const fac = FACTIONS[town.faction];
-  const img = imageSync(fac.castle);
-  prime(fac.castle);
-  const bw = 92 * cam.zoom, bh = 58 * cam.zoom;
+  const src = SPR.castle[town.faction] || fac.castle;
+  primeArt(src);
+  const img = painted(src);
+  const bh = 78 * cam.zoom;
   ctx.save();
   ctx.translate(s.x, s.y);
   ctx.fillStyle = "rgba(0,0,0,.35)";
   ctx.beginPath();
-  ctx.ellipse(0, 16 * cam.zoom, 22 * cam.zoom, 8 * cam.zoom, 0, 0, Math.PI * 2);
+  ctx.ellipse(0, 10 * cam.zoom, 26 * cam.zoom, 8 * cam.zoom, 0, 0, Math.PI * 2);
   ctx.fill();
-  if (img) {
-    roundImage(ctx, img, -bw / 2, -bh, bw, bh, 8 * cam.zoom);
-  } else {
+  if (img) drawFigure(ctx, img, 0, 8 * cam.zoom, bh, time, { seed: town.id, bob: 0.6, sway: 0.012 });
+  else {
     ctx.fillStyle = fac.color;
-    ctx.fillRect(-bw / 2, -bh, bw, bh * 0.7);
+    ctx.fillRect(-30 * cam.zoom, -bh, 60 * cam.zoom, bh);
   }
-  ctx.strokeStyle = fac.gold;
-  ctx.lineWidth = 2;
-  ctx.strokeRect(-bw / 2, -bh, bw, bh * 0.72);
-  ctx.font = `700 ${Math.max(11, 13 * cam.zoom)}px Manrope LK, sans-serif`;
-  ctx.textAlign = "center";
-  const label = town.name;
-  const lw = ctx.measureText(label).width + 18 * cam.zoom;
-  ctx.fillStyle = "rgba(18,8,12,.88)";
-  ctx.fillRect(-lw / 2, -2 * cam.zoom, lw, 16 * cam.zoom);
-  ctx.strokeStyle = fac.gold;
-  ctx.strokeRect(-lw / 2, -2 * cam.zoom, lw, 16 * cam.zoom);
-  ctx.fillStyle = fac.gold;
-  ctx.fillText(label, 0, 10 * cam.zoom);
+  if (town.buildings && (town.buildings.fort || town.buildings.tavern)) torch(ctx, 18 * cam.zoom, -bh * 0.55, time);
   const owner = state.players[town.owner];
   if (owner) {
     ctx.fillStyle = owner.color;
     ctx.beginPath();
-    ctx.arc(bw / 2 - 4, -bh + 6, 5, 0, Math.PI * 2);
+    ctx.arc(22 * cam.zoom, -bh * 0.15, 5, 0, Math.PI * 2);
     ctx.fill();
   }
   ctx.restore();
@@ -393,27 +416,56 @@ function drawObject(ctx, state, obj, cam, w, h) {
   ctx.save();
   ctx.translate(s.x, s.y);
   if (obj.type === "monster" && obj.guard) {
-    const src = portraitFor(obj.guard.cr);
-    prime(src);
-    const img = imageSync(src);
-    drawToken(ctx, img, 0, 0, 16 * z, "#c4374f", String(obj.guard.count));
+    const src = bodySrc(obj.guard.cr);
+    primeArt(src);
+    const img = painted(src) || painted(bodySrc(String(obj.guard.cr).replace(/_u$/, "")));
+    if (!painted(bodySrc(String(obj.guard.cr).replace(/_u$/, "")))) primeArt(bodySrc(String(obj.guard.cr).replace(/_u$/, "")));
+    if (img) drawFigure(ctx, img, 0, 10 * z, 46 * z, performance.now(), { seed: obj.id, sway: 0.04 });
+    else drawToken(ctx, null, 0, 0, 16 * z, "#c4374f", String(obj.guard.count));
+    ctx.fillStyle = "#fff6d8";
+    ctx.font = `700 ${11 * z}px Manrope LK, sans-serif`;
+    ctx.textAlign = "center";
+    ctx.strokeStyle = "#1a0c10";
+    ctx.lineWidth = 3;
+    ctx.strokeText(String(obj.guard.count), 0, 14 * z);
+    ctx.fillText(String(obj.guard.count), 0, 14 * z);
   } else if (obj.type === "resource") {
-    drawGem(ctx, z, obj.res);
+    const src = obj.res === "gold" ? SPR.gold : SPR.gold;
+    primeArt(src);
+    const img = painted(src);
+    if (img) {
+      drawFigure(ctx, img, 0, 8 * z, 28 * z, performance.now(), { seed: obj.id, bob: 1.2, sway: 0.02 });
+      ctx.globalCompositeOperation = "lighter";
+      ctx.globalAlpha = 0.35 + Math.sin(performance.now() / 280) * 0.15;
+      ctx.fillStyle = "#ffe9a0";
+      ctx.beginPath(); ctx.arc(0, -6 * z, 10 * z, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = 1; ctx.globalCompositeOperation = "source-over";
+    } else drawGem(ctx, z, obj.res);
   } else if (obj.type === "mine") {
-    drawMine(ctx, z, obj.res, obj.owner >= 0 ? state.players[obj.owner].color : "#888");
+    primeArt(SPR.mine);
+    const img = painted(SPR.mine);
+    if (img) drawFigure(ctx, img, 0, 10 * z, 40 * z, performance.now(), { seed: obj.id, bob: 0, sway: 0 });
+    else drawMine(ctx, z, obj.res, "#888");
+    torch(ctx, 8 * z, -18 * z, performance.now());
   } else if (obj.type === "artifact" || obj.type === "grail") {
-    drawToken(ctx, null, 0, 0, 13 * z, "#e7c56a", "♛");
+    primeArt(SPR.gold);
+    const img = painted(SPR.gold);
+    if (img) drawFigure(ctx, img, 0, 8 * z, 26 * z, performance.now(), { seed: obj.id, bob: 1.4 });
+    else drawToken(ctx, null, 0, 0, 13 * z, "#e7c56a", "♛");
   } else if (obj.type === "chest") {
-    ctx.fillStyle = "#7a3b16";
-    ctx.fillRect(-8 * z, -8 * z, 16 * z, 12 * z);
-    ctx.fillStyle = "#e7c56a";
-    ctx.fillRect(-8 * z, -4 * z, 16 * z, 3 * z);
+    primeArt(SPR.chest);
+    const img = painted(SPR.chest);
+    if (img) drawFigure(ctx, img, 0, 8 * z, 30 * z, performance.now(), { seed: obj.id, bob: 0.8, sway: 0.02 });
+    else { ctx.fillStyle = "#7a3b16"; ctx.fillRect(-8 * z, -8 * z, 16 * z, 12 * z); }
   } else if (obj.type === "shrine") {
-    ctx.fillStyle = "#d6b4ff";
-    ctx.beginPath();
-    ctx.moveTo(0, -16 * z); ctx.lineTo(8 * z, 4 * z); ctx.lineTo(-8 * z, 4 * z); ctx.fill();
-    ctx.fillStyle = "rgba(214,180,255,.8)";
-    ctx.beginPath(); ctx.arc(0, -4 * z, 3 * z, 0, Math.PI * 2); ctx.fill();
+    primeArt(SPR.shrine);
+    const img = painted(SPR.shrine);
+    if (img) drawFigure(ctx, img, 0, 8 * z, 36 * z, performance.now(), { seed: obj.id, bob: 0.5, sway: 0.02 });
+    torch(ctx, 0, -22 * z, performance.now());
+  } else if (obj.type === "dwelling") {
+    primeArt(SPR.tavern);
+    const img = painted(SPR.tavern);
+    if (img) drawFigure(ctx, img, 0, 8 * z, 36 * z, performance.now(), { seed: obj.id, bob: 0.3, sway: 0.01 });
   } else {
     ctx.fillStyle = "rgba(20,8,12,.8)";
     ctx.beginPath(); ctx.arc(0, 0, 11 * z, 0, Math.PI * 2); ctx.fill();
@@ -475,23 +527,24 @@ function drawHero(ctx, state, hero, cam, w, h, time, selected) {
   const c = tileCenter(hero.x, hero.y);
   const s = toScreen(c.x, c.y - 6, cam, w, h);
   const z = cam.zoom;
-  prime(hero.portrait);
-  const img = imageSync(hero.portrait);
+  const src = rideSrc(hero.rosterId);
+  primeArt(src);
+  primeArt(hero.portrait);
+  const img = painted(src) || painted(hero.portrait);
   const fac = FACTIONS[hero.faction];
   ctx.save();
-  ctx.translate(s.x, s.y + bob);
-  const gallop = (time / 140 + hero.id) % (Math.PI * 2);
-  drawMount(ctx, z, gallop);
-  const r = 15 * z;
+  ctx.translate(s.x, s.y);
   if (selected) {
-    ctx.beginPath(); ctx.arc(0, -18 * z, r + 5, 0, Math.PI * 2);
     ctx.strokeStyle = "rgba(231,197,106,.9)";
     ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.ellipse(0, 6 * z, 18 * z, 7 * z, 0, 0, Math.PI * 2);
     ctx.stroke();
   }
-  drawToken(ctx, img, 0, -18 * z, r, fac.color, "");
+  if (img && painted(src)) drawFigure(ctx, img, 0, 12 * z, 62 * z, time, { seed: hero.id, bob: 2.2, sway: 0.03 });
+  else drawToken(ctx, img, 0, -16 * z, 16 * z, fac.color, "");
   ctx.fillStyle = state.players[hero.player].color;
-  ctx.beginPath(); ctx.arc(r * 0.7, -18 * z - r * 0.7, 4 * z, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(16 * z, -40 * z, 4 * z, 0, Math.PI * 2); ctx.fill();
   ctx.restore();
 }
 function drawMount(ctx, z, phase) {
@@ -594,16 +647,18 @@ function hexPath(ctx, x, y, size) {
 export function drawBattle(ctx, battle, view) {
   const { w, h, time, cam } = view;
   ctx.clearRect(0, 0, w, h);
-  const bg = ctx.createLinearGradient(0, 0, 0, h);
-  const tone = battle.terrain === "snow" ? ["#dbe7f5", "#8aa0b8"]
-    : battle.terrain === "lava" ? ["#4a1c12", "#1a0908"]
-    : battle.terrain === "swamp" ? ["#1d3324", "#0c1a12"]
-    : battle.terrain === "sand" ? ["#e7d3a1", "#8c7044"]
-    : ["#1d4d32", "#0e2418"];
-  bg.addColorStop(0, tone[0]);
-  bg.addColorStop(1, tone[1]);
-  ctx.fillStyle = bg;
-  ctx.fillRect(0, 0, w, h);
+  const bsrc = SPR.battle[battle.terrain] || SPR.battle.grass;
+  primeArt(bsrc);
+  const bimg = painted(bsrc);
+  if (bimg) ctx.drawImage(bimg, 0, 0, w, h);
+  else {
+    const bg = ctx.createLinearGradient(0, 0, 0, h);
+    bg.addColorStop(0, "#1d4d32");
+    bg.addColorStop(1, "#0e2418");
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, w, h);
+  }
+  drawClouds(ctx, w, h * 0.4, time);
 
   const size = (cam.size || 18) * cam.zoom;
   const reach = view.reach;
@@ -613,10 +668,10 @@ export function drawBattle(ctx, battle, view) {
     hexPath(ctx, p.x, p.y, size * 0.96);
     const key = c + "," + r;
     const block = battle.obstacles[key];
-    let fill = "rgba(255,255,255,.05)";
-    if ((r + c) % 2 === 0) fill = "rgba(0,0,0,.08)";
+    let fill = "rgba(255,255,255,.07)";
+    if ((r + c) % 2 === 0) fill = "rgba(0,0,0,.12)";
     if (block === "moat") fill = "rgba(20,70,90,.55)";
-    if (reach && reach.has(key)) fill = "rgba(231,197,106,.28)";
+    if (reach && reach.has(key)) fill = "rgba(231,197,106,.38)";
     ctx.fillStyle = fill;
     ctx.fill();
     ctx.strokeStyle = "rgba(255,255,255,.08)";
@@ -626,7 +681,7 @@ export function drawBattle(ctx, battle, view) {
     if (block === "wall" || block === "gate") drawWall(ctx, p.x, p.y, size, block, battle.wallHp[key] || 0);
   }
 
-  const stacks = battle.stacks.filter((s) => !s.dead);
+  const stacks = battle.stacks.filter((s) => !s.dead || (view.fx && view.fx[s.uid] && view.fx[s.uid].kind === "die"));
   for (const s of stacks) {
     const pos = stackVisualPos(s, view);
     drawBattleUnit(ctx, battle, s, pos.x, pos.y, size, time, s.uid === cur);
@@ -659,47 +714,50 @@ function stackVisualPos(stack, view) {
 
 function drawBattleUnit(ctx, battle, stack, x, y, size, time, active) {
   const cr = CREATURES[stack.cr];
-  const src = portraitFor(stack.cr);
-  prime(src);
-  const img = imageSync(src);
-  const bob = Math.sin(time / 260 + stack.uid) * size * 0.06;
-  const lunge = (viewLunge(stack.uid) );
+  const src = bodySrc(stack.cr);
+  primeArt(src);
+  const base = String(stack.cr).replace(/_u$/, "");
+  if (base !== stack.cr) primeArt(bodySrc(base));
+  const img = painted(src) || painted(bodySrc(base));
+  const h = size * 3.35;
+  const fx = (typeof window !== "undefined" && window.LK && window.LK.fx && window.LK.fx[stack.uid]) || null;
   ctx.save();
-  ctx.translate(x, y + bob);
   if (active) {
-    ctx.shadowColor = "rgba(231,197,106,.9)";
-    ctx.shadowBlur = 12;
+    ctx.shadowColor = "rgba(231,197,106,.85)";
+    ctx.shadowBlur = 16;
   }
   ctx.fillStyle = "rgba(0,0,0,.35)";
-  ctx.beginPath(); ctx.ellipse(0, size * 0.55, size * 0.55, size * 0.22, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(x, y + size * 0.35, size * 0.55, size * 0.2, 0, 0, Math.PI * 2); ctx.fill();
   ctx.shadowBlur = 0;
-  const r = size * 0.98;
-  const ring = stack.side === "left" ? "#e7c56a" : "#d946ef";
-  drawToken(ctx, img, 0, -r * 0.2, r, active ? "#fff4c8" : ring, "");
-  // блик
-  ctx.strokeStyle = "rgba(255,255,255,.45)";
-  ctx.lineWidth = 1.5;
-  ctx.beginPath();
-  ctx.arc(0, -r * 0.2, r * 0.72, Math.PI * 1.15, Math.PI * 1.7);
-  ctx.stroke();
+  if (img) {
+    drawFigure(ctx, img, x, y + size * 0.45, h, time, {
+      seed: stack.uid, bob: 1.6, sway: 0.035,
+      flip: stack.side === "right",
+      fx: fx && { ...fx, dir: stack.side === "left" ? 1 : -1 },
+    });
+  } else {
+    drawToken(ctx, null, x, y, size * 0.7, stack.side === "left" ? "#e7c56a" : "#d946ef", "");
+  }
   const hpMax = cr.hp * stack.initCount;
   const hp = (stack.count - 1) * cr.hp + stack.topHp;
-  const ratio = Math.max(0, Math.min(1, hp / hpMax));
+  const ratio = Math.max(0, Math.min(1, hp / Math.max(1, hpMax)));
+  const barW = size * 1.35;
+  const by = y + size * 0.42;
   ctx.fillStyle = "rgba(0,0,0,.55)";
-  ctx.fillRect(-r, r * 0.72, r * 2, 4);
+  ctx.fillRect(x - barW / 2, by, barW, 4);
   ctx.fillStyle = ratio > 0.5 ? "#4ade80" : ratio > 0.25 ? "#fbbf24" : "#f87171";
-  ctx.fillRect(-r, r * 0.72, r * 2 * ratio, 4);
-  ctx.font = `700 ${Math.max(10, size * 0.42)}px Manrope LK, sans-serif`;
+  ctx.fillRect(x - barW / 2, by, barW * ratio, 4);
+  ctx.font = `700 ${Math.max(11, size * 0.48)}px Manrope LK, sans-serif`;
   ctx.textAlign = "center";
   ctx.lineWidth = 3;
   ctx.strokeStyle = "#14080c";
-  ctx.strokeText(String(stack.count), 0, r * 0.62);
+  ctx.strokeText(String(stack.count), x, by - 2);
   ctx.fillStyle = "#fff8e8";
-  ctx.fillText(String(stack.count), 0, r * 0.62);
+  ctx.fillText(String(stack.count), x, by - 2);
   if (stack.defending) {
-    ctx.fillStyle = "rgba(125, 211, 252, .9)";
-    ctx.font = `${Math.max(9, size * 0.32)}px Manrope LK, sans-serif`;
-    ctx.fillText("щит", 0, -r * 1.15);
+    ctx.fillStyle = "rgba(125, 211, 252, .95)";
+    ctx.font = `${Math.max(10, size * 0.36)}px Manrope LK, sans-serif`;
+    ctx.fillText("щит", x, y - h * 0.15);
   }
   ctx.restore();
 }
@@ -747,11 +805,7 @@ function drawWall(ctx, x, y, size, kind, hp) {
 }
 
 export function preloadFactionArt() {
-  for (const f of Object.values(FACTIONS)) prime(f.castle);
-  for (const id of Object.keys(CREATURES)) {
-    const p = portraitFor(id);
-    if (p) prime(p);
-  }
+  preloadWorld();
 }
 
 export { hexDist, hexNeighbors, effective };

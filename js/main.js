@@ -16,6 +16,7 @@ import {
 } from "./render.js";
 import * as ui from "./ui.js";
 import * as saves from "./save.js";
+import { ensureMusic } from "./music.js";
 
 const app = document.getElementById("app");
 const S = {
@@ -37,6 +38,7 @@ const S = {
   particles: [],
   audio: null,
   loopOn: false,
+  fx: {},
 };
 window.LK = S;
 
@@ -161,6 +163,7 @@ function modalHTML(m) {
 
 function frame(t) {
   const cv = document.getElementById("cv");
+  try {
   if (cv && S.game && S.screen === "game") {
     const rect = cv.getBoundingClientRect();
     const dpr = Math.min(2, window.devicePixelRatio || 1);
@@ -178,14 +181,19 @@ function frame(t) {
       if (cur && controllerOf(S.game.battle, cur) === "human") {
         reach = reachable(S.game.battle, cur).dist;
       }
-      drawBattle(ctx, S.game.battle, { ...view, cam: bcam, reach, currentUid: cur && cur.uid });
+      drawBattle(ctx, S.game.battle, { ...view, cam: bcam, reach, currentUid: cur && cur.uid, fx: S.fx });
     } else {
       drawMap(ctx, S.game, view);
     }
+    const now = performance.now();
+    for (const id of Object.keys(S.fx)) if (now - S.fx[id].t0 > 900) delete S.fx[id];
     for (const f of S.floaters) f.age += 0.02;
     S.floaters = S.floaters.filter((f) => f.age < 1);
     for (const p of S.particles) { p.x += p.vx; p.y += p.vy; p.life -= 0.02; }
     S.particles = S.particles.filter((p) => p.life > 0);
+  }
+  } catch (err) {
+    if (!S._frameErr) { S._frameErr = true; console.error(err); }
   }
   requestAnimationFrame(frame);
 }
@@ -440,6 +448,9 @@ async function showEvents(events = []) {
   const rect = cv ? cv.getBoundingClientRect() : { width: 300, height: 400 };
   for (const ev of events) {
     if (ev.type === "hit" || ev.type === "spellHit" || ev.type === "retal" || ev.type === "breath") {
+      if (ev.from) S.fx[ev.from] = { kind: "attack", t0: performance.now() };
+      if (ev.to) S.fx[ev.to] = { kind: ev.died ? "die" : "hit", t0: performance.now() };
+      if (ev.type === "spellHit") burst((rect.width || 200) / 2, (rect.height || 300) / 2, "#c4b5fd");
       const st = b.stacks.find((s) => s.uid === (ev.to || ev.uid));
       if (st && S.battleCam) {
         const p = hexCenterScreen(st.c, st.r, rect.width, rect.height);
@@ -951,6 +962,7 @@ document.body.addEventListener("click", (e) => {
 
 document.body.addEventListener("pointerdown", () => {
   if (S.audio && S.audio.state === "suspended") S.audio.resume();
+  ensureMusic(S.settings.sound !== false);
 }, { once: false });
 
 function registerSW() {

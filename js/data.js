@@ -1,6 +1,6 @@
 /** Статические данные «Лаковых королевств». Оригинальный мир, механика близкая к HoMM III. */
 
-export const GAME_VERSION = "1.0.0";
+export const GAME_VERSION = "1.1.0";
 
 export const RES_KEYS = ["gold", "lacquer", "resin", "pigment", "amber", "crystal", "pearl"];
 export const RES_NAME = {
@@ -265,18 +265,18 @@ export const CLASSES = {
 };
 
 export const ROSTER = [
-  { id: "ilera", name: "Илэра Валь", classId: "scarlet_might", portrait: "art/heroes/ilera.jpg" },
-  { id: "serafina", name: "Серафина Лак", classId: "scarlet_magic", portrait: "art/heroes/serafina.jpg" },
-  { id: "brienne", name: "Бриенна Двор", classId: "scarlet_might", portrait: "art/heroes/ilera.jpg" },
-  { id: "mirana", name: "Мирана Велес", classId: "emerald_might", portrait: "art/heroes/mirana.jpg" },
-  { id: "aelwin", name: "Аэльвин Роща", classId: "emerald_magic", portrait: "art/heroes/aelwin.jpg" },
-  { id: "lorena", name: "Лорена Плющ", classId: "emerald_might", portrait: "art/heroes/mirana.jpg" },
-  { id: "noxira", name: "Ноксира Тень", classId: "onyx_might", portrait: "art/heroes/noxira.jpg" },
-  { id: "lilith", name: "Лилит Чернила", classId: "onyx_magic", portrait: "art/heroes/lilith.jpg" },
-  { id: "morvana", name: "Морвана Шпиль", classId: "onyx_might", portrait: "art/heroes/noxira.jpg" },
-  { id: "cassia", name: "Кассия Багр", classId: "scarlet_magic", portrait: "art/heroes/serafina.jpg" },
-  { id: "silva", name: "Сильва Корня", classId: "emerald_magic", portrait: "art/heroes/aelwin.jpg" },
-  { id: "umbra", name: "Умбра Лист", classId: "onyx_magic", portrait: "art/heroes/lilith.jpg" },
+  { id: "ilera", name: "Илэра Валь", classId: "scarlet_might", portrait: "art/ride/ilera.webp" },
+  { id: "serafina", name: "Серафина Лак", classId: "scarlet_magic", portrait: "art/ride/serafina.webp" },
+  { id: "brienne", name: "Бриенна Двор", classId: "scarlet_might", portrait: "art/ride/brienne.webp" },
+  { id: "mirana", name: "Мирана Велес", classId: "emerald_might", portrait: "art/ride/mirana.webp" },
+  { id: "aelwin", name: "Аэльвин Роща", classId: "emerald_magic", portrait: "art/ride/aelwin.webp" },
+  { id: "lorena", name: "Лорена Плющ", classId: "emerald_might", portrait: "art/ride/lorena.webp" },
+  { id: "noxira", name: "Ноксира Тень", classId: "onyx_might", portrait: "art/ride/noxira.webp" },
+  { id: "lilith", name: "Лилит Чернила", classId: "onyx_magic", portrait: "art/ride/lilith.webp" },
+  { id: "morvana", name: "Морвана Шпиль", classId: "onyx_might", portrait: "art/ride/morvana.webp" },
+  { id: "cassia", name: "Кассия Багр", classId: "scarlet_magic", portrait: "art/ride/cassia.webp" },
+  { id: "silva", name: "Сильва Корня", classId: "emerald_magic", portrait: "art/ride/silva.webp" },
+  { id: "umbra", name: "Умбра Лист", classId: "onyx_magic", portrait: "art/ride/umbra.webp" },
 ];
 
 const S = (p) => p;
@@ -609,39 +609,7 @@ export const SKIRMISH = [
 export const PLAYER_COLORS = ["#c4374f", "#1f8a5b", "#8b6bc4", "#d4a017", "#3a7bd5", "#d06b3a"];
 
 export function portraitFor(creatureId) {
-  const id = baseCreatureId(creatureId);
-  const map = {
-    s_page: "art/units/s-page.jpg",
-    s_shield: "art/units/s-shield.jpg",
-    s_xbow: "art/units/s-xbow.jpg",
-    s_griff: "art/units/s-griff.jpg",
-    s_knight: "art/units/s-knight.jpg",
-    s_champ: "art/units/s-champ.jpg",
-    s_dragon: "art/units/s-dragon.jpg",
-    e_dew: "art/units/e-dew.jpg",
-    e_bow: "art/units/e-bow.jpg",
-    e_uni: "art/units/e-uni.jpg",
-    e_tree: "art/units/e-tree.jpg",
-    e_witch: "art/units/e-witch.jpg",
-    e_serpent: "art/units/e-serpent.jpg",
-    e_titan: "art/units/e-titan.jpg",
-    o_spark: "art/units/o-spark.jpg",
-    o_shade: "art/units/o-shade.jpg",
-    o_wraith: "art/units/o-wraith.jpg",
-    o_vamp: "art/units/o-vamp.jpg",
-    o_bone: "art/units/o-bone.jpg",
-    o_knight: "art/units/o-knight.jpg",
-    o_dragon: "art/units/o-dragon.jpg",
-    n_bandit: "art/units/s-shield.jpg",
-    n_nomad: "art/units/e-uni.jpg",
-    n_elem: "art/units/s-knight.jpg",
-    n_mage: "art/units/e-witch.jpg",
-    el_air: "art/units/e-dew.jpg",
-    el_fire: "art/units/s-dragon.jpg",
-    el_water: "art/units/o-wraith.jpg",
-    el_earth: "art/units/e-tree.jpg",
-  };
-  return map[id] || "";
+  return `art/bodies/${creatureId}.webp`;
 }
 
 export function aiValue(cr) {

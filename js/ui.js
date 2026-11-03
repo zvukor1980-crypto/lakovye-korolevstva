@@ -289,8 +289,19 @@ export function townHTML(game, townId) {
     const sp = SPELLS[id];
     return `<button class="btn small" data-act="learn-spell" data-town="${town.id}" data-spell="${id}" ${you && visitor ? "" : "disabled"}>${esc(sp.name)} <span class="tag">${sp.level}</span></button>`;
   }).join(" ");
+  const dwellers = tiers.map((b, i) => {
+    if (!town.buildings["dw" + (i + 1)]) return "";
+    const id = town.buildings["up" + (i + 1)] && b.levelUpTo ? b.levelUpTo : b.id;
+    return `<img class="town-unit" style="left:${6 + i * 13}%;animation-delay:${i * 0.25}s" src="${portraitFor(id)}" alt="">`;
+  }).join("");
   return `<div class="modal-back"><div class="sheet">
-    <img class="castle-hero" src="${fac.castle}" alt="">
+    <div class="town-stage" style="background-image:url(art/towns/${town.faction}.jpg)">
+      ${town.buildings.fort || town.buildings.citadel || town.buildings.castle ? `<img class="town-bld fort" src="art/sprites/castle-${town.faction}.webp" alt="">` : ""}
+      ${town.buildings.tavern ? `<img class="town-bld tavern" src="art/sprites/tavern.webp" alt="">` : ""}
+      ${town.buildings.mage1 ? `<img class="town-bld mage" src="art/sprites/mage.webp" alt="">` : ""}
+      ${dwellers}
+      <div class="town-caption">${esc(fac.name)}</div>
+    </div>
     <header class="sheeth"><h2>${esc(town.name)}</h2><button class="btn small ghost" data-act="close-modal">Закрыть</button></header>
     <div class="body">
       <div class="muted">${esc(fac.epithet)}${town.builtToday ? " · сегодня уже строили" : ""}</div>

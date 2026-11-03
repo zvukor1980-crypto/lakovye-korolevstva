@@ -123,6 +123,9 @@ h1, h2, h3 { font-family: "Cormorant LK", Georgia, serif; font-weight: 700; marg
   padding-bottom: 6px;
 }
 
+.sheet, .card, .btn, .hero-pill {
+  box-shadow: inset 0 1px 0 rgba(255,236,190,.25), 0 10px 24px rgba(0,0,0,.28);
+}
 .btn {
   position: relative;
   border: 1px solid var(--line);
@@ -307,7 +310,34 @@ canvas#cv { width: 100%; height: 100%; display: block; touch-action: none; }
   font-size: 10px;
   position: relative;
 }
-.unit img, .aslot img { width: 100%; height: 36px; object-fit: cover; border-radius: 7px; }
+.unit img, .aslot img { width: 100%; height: 52px; object-fit: contain; object-position: center bottom; border-radius: 7px; background: transparent; }
+.portrait-lg { object-fit: contain; object-position: center top; background: #1a0c12; max-height: 280px; }
+.town-stage {
+  position: relative; height: 230px; background-size: cover; background-position: center 40%;
+  overflow: hidden; border-bottom: 1px solid var(--line);
+}
+.town-stage::after {
+  content: ""; position: absolute; inset: auto 0 0 0; height: 46%;
+  background: linear-gradient(180deg, transparent, rgba(12,4,8,.2) 30%, rgba(12,4,8,.55));
+  pointer-events: none;
+}
+.town-bld { position: absolute; bottom: 8px; height: 120px; filter: drop-shadow(0 8px 8px rgba(0,0,0,.45)); z-index: 1; animation: rise .45s ease; }
+.town-bld.fort { left: 4%; height: 150px; bottom: 0; }
+.town-bld.tavern { left: 34%; height: 78px; }
+.town-bld.mage { right: 6%; height: 130px; }
+.town-unit {
+  position: absolute; bottom: 0; height: 108px; z-index: 2;
+  filter: drop-shadow(0 6px 4px rgba(0,0,0,.45));
+  transform-origin: 50% 100%;
+  animation: alive 2.8s ease-in-out infinite;
+}
+.town-caption {
+  position: absolute; left: 10px; top: 8px; z-index: 3;
+  font-family: "Cormorant LK", serif; color: var(--gold); font-size: 20px;
+  text-shadow: 0 2px 8px #000;
+}
+@keyframes alive { 50% { transform: translateY(-3px) rotate(1.2deg); } }
+@keyframes rise { from { transform: translateY(16px); opacity: 0; } to { opacity: 1; } }
 .unit.on, .aslot.on { outline: 2px solid var(--gold); }
 .stats {
   display: grid;
@@ -365,7 +395,8 @@ hr.sep { border: 0; border-top: 1px solid rgba(231,197,106,.18); margin: 8px 0; 
 .battlebar .btn { min-height: 46px; font-size: 13px; }
 .float-note { font-size: 12px; color: var(--muted); }
 .two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.portrait-lg { width: 100%; max-height: 220px; object-fit: cover; border-radius: 14px; }
+.portrait-lg { width: 100%; max-height: 280px; object-fit: contain; object-position: center top; border-radius: 14px; background: #14080e; }
+.hero-pill img { object-fit: cover; object-position: center 20%; }
 .skill {
   padding: 8px; border-radius: 12px; border: 1px solid var(--line); background: rgba(255,255,255,.03);
 }
