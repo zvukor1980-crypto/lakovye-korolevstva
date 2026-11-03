@@ -391,13 +391,6 @@ function drawTown(ctx, state, town, cam, w, h, time) {
     ctx.fillRect(-30 * cam.zoom, -bh, 60 * cam.zoom, bh);
   }
   if (town.buildings && (town.buildings.fort || town.buildings.tavern)) torch(ctx, 18 * cam.zoom, -bh * 0.55, time);
-  const owner = state.players[town.owner];
-  if (owner) {
-    ctx.fillStyle = owner.color;
-    ctx.beginPath();
-    ctx.arc(22 * cam.zoom, -bh * 0.15, 5, 0, Math.PI * 2);
-    ctx.fill();
-  }
   ctx.restore();
 }
 
