@@ -30,26 +30,20 @@ const GEMS = {
 };
 
 export function menuHTML(opts) {
-  return `<div class="screen menu">
-    <div class="brand">
-      <img src="icons/icon-192.png" alt="Герб Лаковых королевств">
-      <div>
-        <p>Пошаговая стратегия</p>
-        <h1>Лаковые<br>королевства</h1>
-      </div>
+  return `<div class="screen menu-lux">
+    <div class="menu-crest">
+      <h1>Лаковые<br>королевства</h1>
     </div>
-    <p class="help" style="margin-top:14px">Три двора, глянцевые доспехи и война за Корону Блеска. Исследуйте карту, стройте города, ведите отряды в бой на гексах.</p>
-    <div class="menu-actions">
-      ${opts.continue ? `<button class="btn primary" data-act="continue">Продолжить</button>` : ""}
-      <button class="btn primary" data-act="campaign">Кампания</button>
-      <button class="btn" data-act="skirmish">Стычка</button>
+    <div class="menu-actions lux">
+      ${opts.continue ? `<button class="btn lux" data-act="continue">Продолжить</button>` : ""}
+      <button class="btn lux" data-act="campaign">Кампания</button>
+      <button class="btn lux" data-act="skirmish">Схватка</button>
+      <button class="btn lux" data-act="load">Загрузить</button>
+      <button class="btn lux" data-act="shop-menu">Лавка</button>
+      <button class="btn lux" data-act="settings">Настройки</button>
       <div class="row">
-        <button class="btn ghost" data-act="load">Загрузка</button>
-        <button class="btn ghost" data-act="bestiary">Бестиарий</button>
-      </div>
-      <div class="row">
-        <button class="btn ghost" data-act="help">Как играть</button>
-        <button class="btn ghost" data-act="settings">Настройки</button>
+        <button class="btn small ghost" data-act="bestiary">Бестиарий</button>
+        <button class="btn small ghost" data-act="help">Как играть</button>
       </div>
     </div>
   </div>`;

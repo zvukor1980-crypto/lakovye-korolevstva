@@ -102,7 +102,7 @@ function renderScreen() {
     load: ui.loadHTML(S.slots),
     bestiary: ui.bestiaryHTML(),
     settings: ui.settingsHTML(S.settings),
-    shop: ui.shopHTML(null),
+    shop: ui.shopHTML(S.game),
   }[S.screen] || ui.menuHTML({ continue: cont });
   app.innerHTML = html;
 }
@@ -595,6 +595,7 @@ async function onAct(actName, el) {
   const g = S.game;
   try {
     if (actName === "campaign") { S.screen = "campaign"; renderScreen(); return; }
+    if (actName === "shop-menu") { S.screen = "shop"; renderScreen(); return; }
     if (actName === "skirmish") { S.screen = "skirmish"; renderScreen(); return; }
     if (actName === "load" || actName === "open-load-game") {
       S.slots = await saves.listSaves();
@@ -610,7 +611,13 @@ async function onAct(actName, el) {
       return;
     }
     if (actName === "back") { S.screen = "menu"; renderScreen(); return; }
-    if (actName === "close-modal") { S.modal = null; S.aim = null; paintChrome(); return; }
+    if (actName === "close-modal") {
+      S.modal = null;
+      S.aim = null;
+      if (S.screen !== "game") { S.screen = "menu"; renderScreen(); return; }
+      paintChrome();
+      return;
+    }
     if (actName === "continue") { await loadSlot("auto"); return; }
     if (actName === "start-camp") {
       const sc = scenarioById(el.dataset.id);

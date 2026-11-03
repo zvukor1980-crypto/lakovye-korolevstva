@@ -35,6 +35,19 @@ def save_webp(im, path, h):
     path.parent.mkdir(parents=True, exist_ok=True)
     fit_height(im, h).save(path, "WEBP", quality=76, method=4)
 
+def make_tileable(im, blend=56):
+    im = im.convert("RGB")
+    arr = np.array(im).astype(np.float32)
+    h, w = arr.shape[:2]
+    b = min(blend, w // 5, h // 5)
+    out = arr.copy()
+    for i in range(b):
+        t = i / float(b)
+        s = t * t * (3 - 2 * t)
+        out[:, i] = arr[:, i] * s + arr[:, w - b + i] * (1 - s)
+        out[i, :] = out[i, :] * s + arr[h - b + i, :] * (1 - s)
+    return Image.fromarray(np.clip(out, 0, 255).astype(np.uint8))
+
 def center_tile(im, frac=0.62):
     w, h = im.size
     cw, ch = int(w * frac), int(h * frac)
@@ -105,6 +118,39 @@ def main():
     for p in SRC.glob("ride-*.jpg"):
         stem = p.stem[len("ride-"):]
         save_webp(chroma(Image.open(p)), rdir / f"{stem}.webp", 720)
+    for p in sorted(SRC.glob("v2-*.jpg")):
+        stem = p.stem[len("v2-"):]
+        if stem.startswith("ride-"):
+            save_webp(chroma(Image.open(p)), rdir / f"{stem[5:]}.webp", 720)
+        else:
+            save_webp(chroma(Image.open(p)), bdir / f"{stem.replace('-', '_')}.webp", 640)
+    atlases = {
+        "atlas-grass.jpg": "atlas-grass.jpg",
+        "atlas-water.jpg": "atlas-water.jpg",
+        "atlas-snow.jpg": "atlas-snow.jpg",
+        "atlas-dirt.jpg": "atlas-dirt.jpg",
+    }
+    for src, dst in atlases.items():
+        p = SRC / src
+        if p.exists():
+            im = make_tileable(Image.open(p))
+            im.thumbnail((1024, 1024), Image.Resampling.LANCZOS)
+            im.save(tdir / dst, "JPEG", quality=84, optimize=True)
+    lux = {
+        "town-scarlet-lux.jpg": ROOT / "towns" / "scarlet.jpg",
+        "town-emerald-lux.jpg": ROOT / "towns" / "emerald.jpg",
+        "town-onyx-lux.jpg": ROOT / "towns" / "onyx.jpg",
+        "battle-sun2.jpg": ROOT / "battle" / "sun.jpg",
+        "menu-key.jpg": ROOT / "menu-key.jpg",
+    }
+    for src, dst in lux.items():
+        p = SRC / src
+        if not p.exists():
+            continue
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        im = Image.open(p).convert("RGB")
+        im.thumbnail((1200, 1600), Image.Resampling.LANCZOS)
+        im.save(dst, "JPEG", quality=82, optimize=True)
 
     n = len(list(bdir.glob("*.webp"))) + len(list(rdir.glob("*.webp"))) + len(list(sdir.glob("*.webp")))
     print("sprites+bodies+rides", n)

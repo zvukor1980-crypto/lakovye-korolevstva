@@ -90,12 +90,34 @@ h1, h2, h3 { font-family: "Cormorant LK", Georgia, serif; font-weight: 700; marg
 .muted { color: var(--muted); }
 .gold { color: var(--gold); }
 
-.menu {
+.menu-lux {
   background:
-    linear-gradient(180deg, rgba(12, 4, 6, 0.18), rgba(12, 4, 6, 0.55) 42%, rgba(8, 3, 5, 0.92)),
-    url("../art/menu-bg.jpg") center 30% / cover no-repeat,
-    #14080c;
+    linear-gradient(180deg, rgba(8,4,12,.05) 0%, rgba(8,4,12,.05) 46%, rgba(10,4,12,.55) 68%, rgba(8,3,10,.82) 100%),
+    url("../art/menu-key.jpg") center top / cover no-repeat,
+    #1a0c18;
+  padding-left: calc(22px + var(--safe-left));
+  padding-right: calc(22px + var(--safe-right));
 }
+.menu-crest { margin-top: 8px; text-align: center; }
+.menu-crest h1 {
+  font-size: 46px;
+  line-height: 0.9;
+  color: #f6e2a8;
+  letter-spacing: 0.01em;
+  text-shadow: 0 2px 0 #6a3a12, 0 0 18px rgba(255, 196, 80, .55), 0 10px 24px rgba(0,0,0,.55);
+}
+.btn.lux {
+  background:
+    linear-gradient(180deg, rgba(255,236,180,.28), rgba(255,236,180,0) 42%),
+    linear-gradient(180deg, #7a2436, #4a1020);
+  border: 2px solid #e8c56b;
+  border-radius: 10px;
+  color: #f8e7c0;
+  letter-spacing: .06em;
+  text-transform: none;
+  box-shadow: 0 0 0 1px #6b3e12, inset 0 0 16px rgba(255, 200, 90, .18), 0 8px 16px rgba(0,0,0,.35);
+}
+.menu-actions.lux { gap: 8px; padding-bottom: 4px; }
 .brand {
   display: flex;
   gap: 12px;

@@ -1,8 +1,9 @@
-const VERSION = "lk-1.1.0";
+const VERSION = "lk-1.2.0";
 const PRECACHE = [
   "./",
   "./art/battle/meadow.jpg",
   "./art/battle/snow.jpg",
+  "./art/battle/sun.jpg",
   "./art/bodies/e_bow.webp",
   "./art/bodies/e_bow_u.webp",
   "./art/bodies/e_dew.webp",
@@ -57,6 +58,7 @@ const PRECACHE = [
   "./art/heroes/noxira.jpg",
   "./art/heroes/serafina.jpg",
   "./art/menu-bg.jpg",
+  "./art/menu-key.jpg",
   "./art/ride/aelwin.webp",
   "./art/ride/brienne.webp",
   "./art/ride/cassia.webp",
@@ -80,6 +82,10 @@ const PRECACHE = [
   "./art/sprites/shrine.webp",
   "./art/sprites/tavern.webp",
   "./art/sprites/tree.webp",
+  "./art/tiles/atlas-dirt.jpg",
+  "./art/tiles/atlas-grass.jpg",
+  "./art/tiles/atlas-snow.jpg",
+  "./art/tiles/atlas-water.jpg",
   "./art/tiles/grass.jpg",
   "./art/tiles/grass2.jpg",
   "./art/tiles/road.jpg",
@@ -138,9 +144,8 @@ const PRECACHE = [
 ];
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(caches.open(VERSION).then((cache) => cache.addAll(PRECACHE).catch(() => cache.addAll(["./", "./index.html", "./js/main.js", "./css/game.css", "./version.json"]))));
+  event.waitUntil(caches.open(VERSION).then((cache) => cache.addAll(PRECACHE).catch(() => undefined)));
 });
-
 self.addEventListener("activate", (event) => {
   event.waitUntil((async () => {
     const keys = await caches.keys();
@@ -148,11 +153,9 @@ self.addEventListener("activate", (event) => {
     await self.clients.claim();
   })());
 });
-
 self.addEventListener("message", (event) => {
   if (event.data && event.data.type === "SKIP_WAITING") self.skipWaiting();
 });
-
 self.addEventListener("fetch", (event) => {
   const req = event.request;
   if (req.method !== "GET") return;

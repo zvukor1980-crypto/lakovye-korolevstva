@@ -24,16 +24,16 @@ export function imageSync(src) {
 }
 
 const GROUND = {
-  [T_GRASS]: ["art/tiles/grass.jpg", "art/tiles/grass2.jpg"],
-  [T_FOREST]: ["art/tiles/grass2.jpg", "art/tiles/grass.jpg"],
-  [T_HILL]: ["art/tiles/grass.jpg", "art/tiles/grass2.jpg"],
-  [T_DIRT]: ["art/tiles/sand.jpg", "art/tiles/road.jpg"],
-  [T_SAND]: ["art/tiles/sand.jpg"],
-  [T_SNOW]: ["art/tiles/snow.jpg"],
-  [T_SWAMP]: ["art/tiles/swamp.jpg"],
-  [T_WATER]: ["art/tiles/water.jpg"],
-  [T_MOUNTAIN]: ["art/tiles/rock.jpg"],
-  [T_LAVA]: ["art/tiles/rock.jpg"],
+  [T_GRASS]: ["art/tiles/atlas-grass.jpg"],
+  [T_FOREST]: ["art/tiles/atlas-grass.jpg"],
+  [T_HILL]: ["art/tiles/atlas-grass.jpg"],
+  [T_DIRT]: ["art/tiles/atlas-dirt.jpg"],
+  [T_SAND]: ["art/tiles/atlas-dirt.jpg"],
+  [T_SNOW]: ["art/tiles/atlas-snow.jpg"],
+  [T_SWAMP]: ["art/tiles/atlas-grass.jpg"],
+  [T_WATER]: ["art/tiles/atlas-water.jpg"],
+  [T_MOUNTAIN]: ["art/tiles/atlas-snow.jpg"],
+  [T_LAVA]: ["art/tiles/atlas-dirt.jpg"],
 };
 
 export function groundSrc(type, x, y) {
@@ -56,12 +56,12 @@ export const SPR = {
     onyx: "art/sprites/castle-onyx.webp",
   },
   battle: {
-    grass: "art/battle/meadow.jpg",
-    forest: "art/battle/meadow.jpg",
-    sand: "art/battle/meadow.jpg",
+    grass: "art/battle/sun.jpg",
+    forest: "art/battle/sun.jpg",
+    sand: "art/battle/sun.jpg",
     snow: "art/battle/snow.jpg",
-    swamp: "art/battle/meadow.jpg",
-    lava: "art/battle/meadow.jpg",
+    swamp: "art/battle/sun.jpg",
+    lava: "art/battle/sun.jpg",
   },
   town: {
     scarlet: "art/towns/scarlet.jpg",
@@ -94,12 +94,31 @@ export function diamondPath(ctx, dw, dh) {
   ctx.closePath();
 }
 
+function blitWrap(ctx, img, sx, sy, sw, sh, dx, dy, dw, dh) {
+  const tw = img.width;
+  const th = img.height;
+  sx = ((sx % tw) + tw) % tw;
+  sy = ((sy % th) + th) % th;
+  const w1 = Math.min(sw, tw - sx);
+  const h1 = Math.min(sh, th - sy);
+  const sx2 = w1 / sw;
+  const sy2 = h1 / sh;
+  ctx.drawImage(img, sx, sy, w1, h1, dx, dy, dw * sx2, dh * sy2);
+  if (w1 < sw) ctx.drawImage(img, 0, sy, sw - w1, h1, dx + dw * sx2, dy, dw * (1 - sx2), dh * sy2);
+  if (h1 < sh) ctx.drawImage(img, sx, 0, w1, sh - h1, dx, dy + dh * sy2, dw * sx2, dh * (1 - sy2));
+  if (w1 < sw && h1 < sh) ctx.drawImage(img, 0, 0, sw - w1, sh - h1, dx + dw * sx2, dy + dh * sy2, dw * (1 - sx2), dh * (1 - sy2));
+}
+
 export function drawGround(ctx, img, dw, dh, type, time, x, y) {
   if (!img) return false;
   ctx.save();
-  diamondPath(ctx, dw + 1.5, dh + 1.5);
+  diamondPath(ctx, dw + 2, dh + 2);
   ctx.clip();
-  ctx.drawImage(img, -dw * 0.58, -dh * 0.58, dw * 1.16, dh * 1.16);
+  const span = 72;
+  const drift = type === T_WATER ? time / 40 : 0;
+  const sx = x * span;
+  const sy = y * span * 0.55 + drift;
+  blitWrap(ctx, img, sx, sy, span, Math.max(16, span * 0.55), -dw / 2, -dh / 2, dw, dh);
   if (type === T_LAVA) {
     ctx.globalCompositeOperation = "multiply";
     ctx.fillStyle = "rgba(180, 40, 10, .55)";

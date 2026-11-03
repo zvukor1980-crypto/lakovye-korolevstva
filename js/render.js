@@ -596,8 +596,9 @@ export function battleCamera(w, h) {
   const size = 22;
   const fieldW = size * Math.sqrt(3) * (BCOLS - 1 + 0.5) + size * 2;
   const fieldH = size * 1.5 * (BROWS - 1) + size * 2;
-  const fit = Math.min((w - 8) / fieldW, (h - 8) / fieldH);
-  return { x: fieldW / 2, y: fieldH / 2, zoom: fit, size };
+  const padX = 70;
+  const fit = Math.min((w - padX * 2) / fieldW, (h - 12) / fieldH);
+  return { x: fieldW / 2, y: fieldH * 0.48, zoom: fit, size };
 }
 
 function hexPos(c, r, size) {
@@ -666,9 +667,13 @@ export function drawBattle(ctx, battle, view) {
     if (block === "moat") fill = "rgba(20,70,90,.55)";
     if (reach && reach.has(key)) fill = "rgba(231,197,106,.38)";
     ctx.fillStyle = fill;
+    ctx.shadowColor = reach && reach.has(key) ? "rgba(80, 220, 255, .9)" : "rgba(255, 196, 90, .35)";
+    ctx.shadowBlur = reach && reach.has(key) ? 14 : 6;
     ctx.fill();
-    ctx.strokeStyle = "rgba(255,255,255,.08)";
+    ctx.strokeStyle = reach && reach.has(key) ? "rgba(150, 240, 255, .95)" : "rgba(255, 214, 130, .45)";
+    ctx.lineWidth = reach && reach.has(key) ? 2.4 : 1.3;
     ctx.stroke();
+    ctx.shadowBlur = 0;
     if (block === "rock") drawRock(ctx, p.x, p.y, size);
     if (block === "tree") drawBattleTree(ctx, p.x, p.y, size);
     if (block === "wall" || block === "gate") drawWall(ctx, p.x, p.y, size, block, battle.wallHp[key] || 0);
@@ -712,7 +717,7 @@ function drawBattleUnit(ctx, battle, stack, x, y, size, time, active) {
   const base = String(stack.cr).replace(/_u$/, "");
   if (base !== stack.cr) primeArt(bodySrc(base));
   const img = painted(src) || painted(bodySrc(base));
-  const h = size * 3.35;
+  const h = size * 6.4;
   const fx = (typeof window !== "undefined" && window.LK && window.LK.fx && window.LK.fx[stack.uid]) || null;
   ctx.save();
   if (active) {
