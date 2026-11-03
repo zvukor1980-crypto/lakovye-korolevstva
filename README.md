@@ -15,4 +15,8 @@
 
 ## Публикация
 
-Сайт GitHub Pages: <https://zvukor1980-crypto.github.io/lakovye-korolevstva/>
+Игра лежит в ветке `main`. Адрес после включения Pages:
+
+<https://zvukor1980-crypto.github.io/lakovye-korolevstva/>
+
+Включение: Settings → Pages → Build and deployment → Deploy from a branch → `main` / `/ (root)`. Токен, которым публикуется этот репозиторий, получает `403 Resource not accessible by integration` на `POST /repos/.../pages`, поэтому сайт из автоматизации не создаётся. Процесс `.github/workflows/pages.yml` оставлен для ручного запуска, если источником выбран GitHub Actions.

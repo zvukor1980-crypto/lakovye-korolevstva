@@ -1,8 +1,8 @@
 name: Pages
 
+# Включается вручную: у токена интеграции нет права создать сайт Pages (API отвечает 403).
+# Когда в настройках репозитория выбран источник «GitHub Actions», запустите этот процесс.
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
