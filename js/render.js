@@ -330,7 +330,7 @@ function drawRoute(ctx, steps, view) {
 export function drawMinimap(canvas, state, playerId, cam, viewW, viewH) {
   const ctx = canvas.getContext("2d");
   const dpr = Math.min(2, window.devicePixelRatio || 1);
-  const W = 76, H = 76;
+  const W = 86, H = 86;
   if (canvas.width !== Math.round(W * dpr)) {
     canvas.width = Math.round(W * dpr);
     canvas.height = Math.round(H * dpr);
@@ -722,14 +722,15 @@ export function roundImage(ctx, img, x, y, w, h, r) {
 /* ---------- бой ---------- */
 
 export function battleCamera(w, h) {
-  const size = 20;
-  const fieldW = size * Math.sqrt(3) * (BCOLS - 1 + 0.5) + size * 2;
-  const fieldH = size * 1.5 * (BROWS - 1) + size * 2.4;
-  const zoom = Math.min((w - 6) / fieldW, (h - 6) / fieldH);
+  const size = 28;
+  // Поле повёрнуто: ряды по ширине, колонны по высоте. Свои внизу, чужие сверху.
+  const fieldW = size * Math.sqrt(3) * (BROWS - 1 + 0.5) + size * 2;
+  const fieldH = size * 1.5 * (BCOLS - 1) + size * 3.2;
+  const zoom = Math.min((w - 4) / fieldW, (h - 4) / fieldH);
   return {
-    x: size * Math.sqrt(3) * (BCOLS - 1) / 2,
-    y: size * 1.5 * (BROWS - 1) / 2,
-    zoom: Math.max(0.45, zoom),
+    x: size * Math.sqrt(3) * (BROWS - 1) / 2,
+    y: size * 1.5 * (BCOLS - 1) / 2,
+    zoom: Math.max(0.42, zoom),
     size,
   };
 }
@@ -741,8 +742,8 @@ export function focusHex(cam, c, r) {
 
 function hexPos(c, r, size) {
   return {
-    x: size * Math.sqrt(3) * (c + 0.5 * (r & 1)),
-    y: size * 1.5 * r,
+    x: size * Math.sqrt(3) * (r + 0.5 * (c & 1)),
+    y: size * 1.5 * (BCOLS - 1 - c),
   };
 }
 function battleScreen(c, r, view) {
@@ -806,12 +807,12 @@ export function drawBattle(ctx, battle, view) {
       hexPath(ctx, p.x, p.y, size * 0.96);
       let fill = showGrid ? ((r + c) % 2 === 0 ? "rgba(0,0,0,.12)" : "rgba(255,255,255,.07)") : "rgba(0,0,0,0)";
       if (block === "moat") fill = "rgba(20,70,90,.55)";
-      if (hot) fill = "rgba(80, 210, 120, .38)";
+      if (hot) fill = "rgba(212, 168, 74, .34)";
       ctx.fillStyle = fill;
       ctx.fill();
       if (showGrid || hot) {
-        ctx.strokeStyle = hot ? "rgba(190, 255, 170, .95)" : "rgba(255, 214, 130, .45)";
-        ctx.lineWidth = hot ? 2.2 : 1.2;
+        ctx.strokeStyle = hot ? "rgba(232, 208, 138, .95)" : "rgba(212, 175, 90, .22)";
+        ctx.lineWidth = hot ? 2 : 1;
         ctx.stroke();
       }
     }
@@ -821,6 +822,7 @@ export function drawBattle(ctx, battle, view) {
   }
 
   const stacks = battle.stacks.filter((s) => !s.dead || (view.fx && view.fx[s.uid] && view.fx[s.uid].kind === "die"));
+  stacks.sort((a, b) => b.c - a.c || a.r - b.r);
   for (const s of stacks) {
     const pos = stackVisualPos(s, view);
     drawBattleUnit(ctx, battle, s, pos.x, pos.y, size, time, s.uid === cur);
@@ -876,7 +878,7 @@ function drawBattleUnit(ctx, battle, stack, x, y, size, time, active) {
   const base = String(stack.cr).replace(/_u$/, "");
   if (base !== stack.cr) primeArt(bodySrc(base));
   const img = painted(src) || painted(bodySrc(base));
-  const h = size * 1.9;
+  const h = size * 3.35;
   const fx = (typeof window !== "undefined" && window.LK && window.LK.fx && window.LK.fx[stack.uid]) || null;
   ctx.save();
   if (active) {

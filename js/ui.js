@@ -209,17 +209,12 @@ export function dockHTML(game, hero, mode, flags = {}) {
       coach = `<div class="coach"><span>Коснитесь клетки — героиня пойдёт. «Ход» отдаёт день.</span><button class="btn small" data-act="dismiss-coach">Ясно</button></div>`;
     }
   } catch { /* хранилище недоступно */ }
-  return `${coach}<div class="dock-hero">
-      <button class="hero-pill" data-act="open-hero">
-        <img src="${esc(img)}" alt="">
-        <div style="min-width:0"><div class="nm">${esc(nm)}</div><div class="sub">${esc(sub)}</div></div>
-      </button>
-    </div>
-    <div class="dock-row">
-      <button class="btn small" data-act="open-town">Город</button>
-      <button class="btn small" data-act="open-spell">Книга</button>
-      <button class="btn small" data-act="open-overview">Обзор</button>
-      <button class="btn small primary" data-act="end-turn">Ход</button>
+  return `${coach}<p class="orb-caption">${esc(nm)} · ${esc(sub)}</p>
+    <div class="orb-row">
+      <button class="orb" data-act="open-hero" aria-label="Героиня"><img src="${esc(img)}" alt=""><span>Героиня</span></button>
+      <button class="orb" data-act="open-town" aria-label="Город"><span class="glyph">⌂</span><span>Город</span></button>
+      <button class="orb" data-act="open-spell" aria-label="Книга"><span class="glyph">✦</span><span>Книга</span></button>
+      <button class="orb gold" data-act="end-turn" aria-label="Ход"><span class="glyph">♛</span><span>Ход</span></button>
     </div>`;
 }
 
@@ -240,9 +235,15 @@ function battleDock(game, mode, flags) {
   const name = cur ? CREATURES[cur.cr].name : "…";
   const side = b.human.right && !b.human.left ? "right" : "left";
   const cost = surrenderCost(b, side);
+  const faces = ["left", "right"].map((sd) => {
+    const hero = b.heroes && b.heroes[sd];
+    if (!hero) return "";
+    const src = hero.portrait || "icons/icon-192.png";
+    return `<div class="bface ${sd}"><img src="${esc(src)}" alt=""><b>${esc(hero.name || "")}</b></div>`;
+  }).join("");
   return `<div style="width:100%" class="stack">
+    <div class="bfaces">${faces}<div class="clog">Ход: ${esc(name)} · раунд ${b.round}<br>${log}</div></div>
     <div class="queue">${queueHTML(b)}</div>
-    <div class="clog">Ход: ${esc(name)} · раунд ${b.round}<br>${log}</div>
     <div class="battlebar">
       <button class="btn small" data-act="battle-wait">Ждать</button>
       <button class="btn small" data-act="battle-defend">Защита</button>

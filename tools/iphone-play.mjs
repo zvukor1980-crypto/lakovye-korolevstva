@@ -45,7 +45,7 @@ async function clickAct(act, extra) {
   const sel = extra ? `[data-act="${act}"]${extra}` : `[data-act="${act}"]`;
   const el = page.locator(sel).first();
   await el.waitFor({ state: "visible", timeout: 8000 });
-  await el.tap();
+  await el.click({ force: true });
 }
 async function audit(where) {
   const report = await page.evaluate(() => {
@@ -142,6 +142,7 @@ try {
   }
   if (await page.locator("[data-act=close-modal]").count()) await clickAct("close-modal");
 
+  await clickAct("open-system");
   await clickAct("open-overview");
   await audit("обзор");
   await shot("overview");
