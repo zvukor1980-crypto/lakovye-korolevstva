@@ -330,7 +330,7 @@ function drawRoute(ctx, steps, view) {
 export function drawMinimap(canvas, state, playerId, cam, viewW, viewH) {
   const ctx = canvas.getContext("2d");
   const dpr = Math.min(2, window.devicePixelRatio || 1);
-  const W = 112, H = 112;
+  const W = 76, H = 76;
   if (canvas.width !== Math.round(W * dpr)) {
     canvas.width = Math.round(W * dpr);
     canvas.height = Math.round(H * dpr);
@@ -722,11 +722,16 @@ export function roundImage(ctx, img, x, y, w, h, r) {
 /* ---------- бой ---------- */
 
 export function battleCamera(w, h) {
-  const size = 34;
-  const span = size * Math.sqrt(3) * 7.2;
-  const zoom = Math.max(0.85, Math.min(1.3, (w * 0.98) / span));
-  const fieldH = size * 1.5 * (BROWS - 1);
-  return { x: size * Math.sqrt(3) * 3.6, y: fieldH * 0.5, zoom, size };
+  const size = 20;
+  const fieldW = size * Math.sqrt(3) * (BCOLS - 1 + 0.5) + size * 2;
+  const fieldH = size * 1.5 * (BROWS - 1) + size * 2.4;
+  const zoom = Math.min((w - 6) / fieldW, (h - 6) / fieldH);
+  return {
+    x: size * Math.sqrt(3) * (BCOLS - 1) / 2,
+    y: size * 1.5 * (BROWS - 1) / 2,
+    zoom: Math.max(0.45, zoom),
+    size,
+  };
 }
 export function focusHex(cam, c, r) {
   const p = hexPos(c, r, cam.size || 36);
@@ -820,8 +825,6 @@ export function drawBattle(ctx, battle, view) {
     const pos = stackVisualPos(s, view);
     drawBattleUnit(ctx, battle, s, pos.x, pos.y, size, time, s.uid === cur);
   }
-  drawSideHero(ctx, battle.heroes.left, w, h, time, false);
-  drawSideHero(ctx, battle.heroes.right, w, h, time, true);
   for (const f of view.floaters || []) {
     ctx.globalAlpha = Math.max(0, 1 - f.age);
     ctx.fillStyle = f.color || "#fff";
@@ -873,7 +876,7 @@ function drawBattleUnit(ctx, battle, stack, x, y, size, time, active) {
   const base = String(stack.cr).replace(/_u$/, "");
   if (base !== stack.cr) primeArt(bodySrc(base));
   const img = painted(src) || painted(bodySrc(base));
-  const h = size * 2.55;
+  const h = size * 1.9;
   const fx = (typeof window !== "undefined" && window.LK && window.LK.fx && window.LK.fx[stack.uid]) || null;
   ctx.save();
   if (active) {

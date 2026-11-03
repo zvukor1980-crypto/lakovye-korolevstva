@@ -7,6 +7,7 @@ let playing = false;
 const SCALE = [0, 2, 3, 5, 7, 9, 10, 12];
 
 function tone(ac, freq, t, dur, type, gain) {
+  if (!ac || ac.state === "closed") return;
   const o = ac.createOscillator();
   const g = ac.createGain();
   const f = ac.createBiquadFilter();
@@ -28,13 +29,16 @@ export function ensureMusic(enabled) {
   if (playing) return;
   const AC = window.AudioContext || window.webkitAudioContext;
   if (!AC) return;
-  ctx = ctx || new AC();
-  if (ctx.state === "suspended") ctx.resume();
+  try {
+    ctx = ctx || new AC();
+    if (ctx.state === "suspended") ctx.resume().catch(() => { playing = false; });
+  } catch { return; }
   playing = true;
   const root = 62;
   let step = 0;
   const tick = () => {
     if (!playing || !ctx) return;
+    try {
     const t = ctx.currentTime + 0.02;
     const degree = SCALE[step % SCALE.length];
     const oct = step % 16 < 8 ? 0 : 12;
@@ -42,6 +46,7 @@ export function ensureMusic(enabled) {
     if (step % 4 === 0) tone(ctx, midi(root - 12 + (step % 8 === 0 ? 0 : 7)), t, 1.3, "sine", 0.02);
     if (step % 8 === 4) tone(ctx, midi(root + 12 + degree), t, 0.7, "sine", 0.01);
     step++;
+    } catch { stopMusic(); }
   };
   tick();
   timer = setInterval(tick, 420);

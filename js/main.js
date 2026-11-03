@@ -56,11 +56,15 @@ function saveProgress() { localStorage.setItem("lk-progress", JSON.stringify(S.p
 function toast(text) {
   if (!text) return;
   const wrap = document.getElementById("toasts");
+  if (!wrap) return;
+  const host = document.querySelector(".game");
+  if (host && wrap.parentElement !== host) host.appendChild(wrap);
+  while (wrap.children.length >= 2) wrap.firstChild.remove();
   const el = document.createElement("div");
   el.className = "toast";
   el.textContent = text;
   wrap.appendChild(el);
-  setTimeout(() => el.remove(), 3200);
+  setTimeout(() => el.remove(), 2600);
 }
 
 function beep(freq = 440, dur = 0.05, type = "sine", gain = 0.03) {
@@ -141,6 +145,10 @@ function paintChrome() {
   if (mm) mm.classList.toggle("hidden", S.mode === "battle" || S.mode === "deploy");
   const modal = document.getElementById("modal");
   modal.innerHTML = S.modal ? modalHTML(S.modal) : "";
+  if (S.armFrom) {
+    const btn = modal.querySelector(`[data-act="army"][data-which="${S.armFrom.which}"][data-i="${S.armFrom.i}"]`);
+    if (btn) btn.classList.add("on");
+  }
   bindRanges();
 }
 
@@ -225,10 +233,6 @@ function frame(t) {
       if (!S.battleCam) S.battleCam = battleCamera(rect.width, rect.height);
       const bcam = S.battleCam;
       const cur = S.game.battle && currentStack(S.game.battle);
-      if (cur && S.followUid !== cur.uid) {
-        S.followUid = cur.uid;
-        focusHex(bcam, cur.c, cur.r);
-      }
       let reach = null;
       if (cur && controllerOf(S.game.battle, cur) === "human") {
         reach = reachable(S.game.battle, cur).dist;
@@ -247,7 +251,7 @@ function frame(t) {
     S.particles = S.particles.filter((p) => p.life > 0);
   }
   } catch (err) {
-    if (!S._frameErr) { S._frameErr = true; console.error(err); }
+    if (!S._frameErr) { S._frameErr = true; console.error(err && err.stack ? err.stack : err); }
   }
   requestAnimationFrame(frame);
 }
@@ -376,7 +380,7 @@ async function walk(hero, path) {
       break;
     }
     if (r.diplomacy) { S.modal = { type: "diplo", data: r.diplomacy }; break; }
-    if (r.message) await showEvent("На карте", r.message);
+    if (r.message) toast(r.message);
     if (checkLevel(hero)) break;
   }
   if (path.attack && !S.game.battle && !S.modal) {
@@ -407,9 +411,15 @@ function checkLevel(hero) {
   return false;
 }
 
+function clearToasts() {
+  const wrap = document.getElementById("toasts");
+  if (wrap) wrap.replaceChildren();
+}
+
 async function runBattle() {
   const b = S.game.battle;
   if (!b) return;
+  clearToasts();
   S.battleCam = null;
   S.followUid = null;
   if (b.phase === "deploy" && (b.human.left || b.human.right)) {
@@ -504,7 +514,8 @@ async function castAimed(hex) {
   const spell = S.aim;
   S.aim = null;
   const occ = b.stacks.find((s) => !s.dead && s.c === hex.c && s.r === hex.r);
-  await humanBattle({ type: "spell", side: "left", spellId: spell, target: occ && occ.uid, hex });
+  const side = b.human.right && !b.human.left ? "right" : "left";
+  await humanBattle({ type: "spell", side, spellId: spell, target: occ && occ.uid, hex });
 }
 
 async function showEvents(events = []) {
@@ -786,6 +797,7 @@ async function onAct(actName, el) {
       return;
     }
     if (actName === "open-shop") { S.modal = { type: "shop" }; paintChrome(); return; }
+    if (actName === "dismiss-coach") { localStorage.setItem("lk-coach", "1"); paintChrome(); return; }
     if (actName === "open-system") { S.modal = { type: "system" }; paintChrome(); return; }
     if (actName === "open-overview") { S.modal = { type: "overview" }; paintChrome(); return; }
     if (actName === "open-save") { S.slots = await saves.listSaves(); S.modal = { type: "save" }; paintChrome(); return; }
@@ -888,7 +900,14 @@ async function onAct(actName, el) {
     if (actName === "army") {
       const which = el.dataset.which;
       const i = Number(el.dataset.i);
-      if (!S.armFrom) { S.armFrom = { which, i }; toast("Выбран слот. Коснитесь другого."); return; }
+      if (S.armFrom && S.armFrom.which === which && S.armFrom.i === i) {
+        const sl = (armyOf(which) || [])[i];
+        S.armFrom = null;
+        if (sl) S.modal = { type: "creature", id: sl.id, prev: S.modal };
+        paintChrome();
+        return;
+      }
+      if (!S.armFrom) { S.armFrom = { which, i }; toast("Слот выбран. Другой слот — перенос, тот же — сведения."); paintChrome(); return; }
       const A = armyOf(S.armFrom.which);
       const B = armyOf(which);
       if (A && B) {
@@ -1139,9 +1158,12 @@ function registerSW() {
         });
       });
       if (reg.waiting && navigator.serviceWorker.controller) showUpdate(reg);
+      let hadController = !!navigator.serviceWorker.controller;
       navigator.serviceWorker.addEventListener("controllerchange", () => {
-        if (S.reloading) return;
+        if (!hadController) { hadController = true; return; }
+        if (S.reloading || sessionStorage.getItem("lk-reloaded")) return;
         S.reloading = true;
+        sessionStorage.setItem("lk-reloaded", "1");
         location.reload();
       });
       const res = await fetch("./version.json", { cache: "no-store" });

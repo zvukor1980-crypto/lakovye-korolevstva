@@ -193,32 +193,32 @@ export function topHTML(game) {
   return `<div class="dayline">
       <strong>${esc(cal.label)}</strong>
       <span>${esc(cal.dayName)}${you ? "" : " · " + esc(p.name)}</span>
-      <button class="btn tiny ghost" data-act="open-system" aria-label="Меню">☰</button>
+      <button class="btn icon" data-act="open-system" aria-label="Меню">☰</button>
     </div>
     <div class="resbar">${resourcesHTML(p.resources)}</div>`;
 }
 
 export function dockHTML(game, hero, mode, flags = {}) {
   if (mode === "battle" || mode === "deploy") return battleDock(game, mode, flags);
-  const e = hero ? effective(hero) : null;
   const sub = hero ? `ход ${hero.movement} · мана ${hero.mana}/${maxMana(hero)}` : "нет героини";
   const img = hero ? hero.portrait : "icons/icon-192.png";
   const nm = hero ? hero.name : "—";
-  const stats = e
-    ? `<div class="mini-stats"><b>${e.attack}</b><b>${e.defense}</b><b>${e.power}</b><b>${e.knowledge}</b><span>атака</span><span>защита</span><span>сила</span><span>знание</span></div>`
-    : "";
-  return `<div class="dock-hero">
+  let coach = "";
+  try {
+    if (!localStorage.getItem("lk-coach")) {
+      coach = `<div class="coach"><span>Коснитесь клетки — героиня пойдёт. «Ход» отдаёт день.</span><button class="btn small" data-act="dismiss-coach">Ясно</button></div>`;
+    }
+  } catch { /* хранилище недоступно */ }
+  return `${coach}<div class="dock-hero">
       <button class="hero-pill" data-act="open-hero">
         <img src="${esc(img)}" alt="">
         <div style="min-width:0"><div class="nm">${esc(nm)}</div><div class="sub">${esc(sub)}</div></div>
       </button>
-      ${stats}
     </div>
     <div class="dock-row">
-      <button class="btn small" data-act="open-heroes">Герои</button>
-      <button class="btn small" data-act="open-towns">Города</button>
-      <button class="btn small" data-act="open-overview">Обзор</button>
+      <button class="btn small" data-act="open-town">Город</button>
       <button class="btn small" data-act="open-spell">Книга</button>
+      <button class="btn small" data-act="open-overview">Обзор</button>
       <button class="btn small primary" data-act="end-turn">Ход</button>
     </div>`;
 }
@@ -333,32 +333,36 @@ export function townHTML(game, townId) {
   const you = p && p.control === "human" && game.players[game.current].id === p.id;
   const fac = FACTIONS[town.faction];
   const visitor = game.heroes.find((h) => !h.lost && h.x === town.x && h.y === town.y && h.player === town.owner);
-  const spots = townSpots(town).map((s) => {
-    const def = buildingDef(town.faction, s.id);
-    const raw = s.id === "village" ? "Покои" : (def && def.name) || s.id;
-    const label = raw.replace(/^Жилище: /, "").replace(/^Улучшение: /, "").replace("Гильдия магов ", "Гильдия ");
-    return `<button class="hotspot ${s.up ? "up" : ""}" style="left:${s.x}%;bottom:${s.y}%" data-act="town-hit" data-town="${town.id}" data-id="${s.id}" aria-label="${esc(label)}">
-      <img src="${s.art}" alt="" style="height:${s.h}px">
-      <span>${esc(label)}</span>
-    </button>`;
+  const order = ["capitol", "cityHall", "townHall", "castle", "citadel", "fort", "mage5", "mage4", "mage3", "mage2", "mage1", "tavern", "market", "blacksmith", "silo", "dw7", "dw6", "dw5", "dw4", "dw3", "dw2", "dw1", "up7", "up6", "up5", "up4", "up3", "up2", "up1", "special", "horde", "grail"];
+  const built = order.filter((id) => {
+    if (!town.buildings[id]) return false;
+    if (/^dw(\d)$/.test(id) && town.buildings["up" + id.slice(2)]) return false;
+    return true;
+  }).map((id) => {
+    const def = buildingDef(town.faction, id) || { name: id, desc: "" };
+    const name = def.name.replace(/^Жилище: /, "").replace(/^Улучшение: /, "");
+    return `<button class="btn bld-row" data-act="town-hit" data-town="${town.id}" data-id="${id}"><b>${esc(name)}</b><span>${esc(def.desc || "")}</span></button>`;
   }).join("");
+  const fortSrc = town.buildings.fort || town.buildings.citadel || town.buildings.castle ? `art/sprites/castle-${town.faction}.webp` : BLD_SPRITE.hall;
   return `<div class="modal-back"><div class="sheet town-sheet">
     <div class="town-stage" style="background-image:url(art/towns/${town.faction}.jpg)">
-      ${spots}
+      <img class="town-deco" src="${fortSrc}" alt="">
       <div class="town-caption">${esc(town.name)}<small>${esc(fac.name)}</small></div>
     </div>
     <header class="sheeth">
       <h2>${esc(fac.epithet)}</h2>
       <button class="btn small ghost" data-act="close-modal">Закрыть</button>
     </header>
-    <div class="town-armies">
-      <div class="army-line"><span>${visitor ? esc(visitor.name) : "В гостях"}</span>${visitor ? armyRow(visitor.army, "hero:" + visitor.id, you) : `<p class="muted">Героини в городе нет.</p>`}</div>
+    <div class="town-body">
+      <div class="army-line"><span>${visitor ? esc(visitor.name) : "В гостях"}</span>${visitor ? armyRow(visitor.army, "hero:" + visitor.id, you) : `<p class="muted">Героини в городе нет. Поставьте её на замок.</p>`}</div>
       <div class="army-line"><span>Гарнизон</span>${armyRow(town.garrison, "garrison", you)}</div>
       <div class="row">
-        ${you ? `<button class="btn small primary" data-act="open-hall" data-town="${town.id}">Ратуша</button>` : ""}
+        ${you ? `<button class="btn small primary" data-act="open-hall" data-town="${town.id}">Строить</button>` : ""}
         ${you ? `<button class="btn small" data-act="open-trade" data-town="${town.id}" ${town.buildings.market ? "" : "disabled"}>Рынок</button>` : ""}
-        <p class="float-note">${town.builtToday ? "Сегодня уже строили." : "Коснитесь строения на панораме."}</p>
       </div>
+      <h3>Уже стоит</h3>
+      <div class="stack">${built || `<p class="muted">Пока только покои. Откройте «Строить».</p>`}</div>
+      <p class="float-note">${town.builtToday ? "Сегодня уже строили." : "Один дом в день. Повторное касание слота войска открывает сведения."}</p>
     </div>
   </div></div>`;
 }
@@ -438,13 +442,10 @@ export function armyRow(army, which, enabled) {
   return `<div class="grid7">${army.map((sl, i) => {
     if (!sl) return `<button class="unit" data-act="army" data-which="${which}" data-i="${i}" ${enabled ? "" : "disabled"}>—</button>`;
     const cr = CREATURES[sl.id];
-    return `<div class="unit">
-      <button data-act="army" data-which="${which}" data-i="${i}">
-        <img src="${portraitFor(sl.id)}" alt="">
-        <b>${sl.count}</b>
-      </button>
-      <button class="info-dot" data-act="creature" data-id="${sl.id}" aria-label="${esc(cr.name)}">i</button>
-    </div>`;
+    return `<button class="unit" data-act="army" data-which="${which}" data-i="${i}" aria-label="${esc(cr.name)}">
+      <img src="${portraitFor(sl.id)}" alt="">
+      <b>${sl.count}</b>
+    </button>`;
   }).join("")}</div>`;
 }
 
@@ -467,12 +468,8 @@ export function heroHTML(game, heroId) {
   const right = ["neck", "shield", "chest", "ring1"].map((id) => slotBtn(hero, id, byId[id])).join("");
   const misc = ["ring2", "misc1", "misc2", "misc3", "misc4"].map((id) => slotBtn(hero, id, byId[id])).join("");
   const known = Object.entries(hero.skills);
-  const skills = Array.from({ length: 8 }, (_, i) => {
-    const pair = known[i];
-    if (!pair) return `<div class="skillslot empty">—</div>`;
-    const [id, lv] = pair;
-    return `<div class="skillslot"><b>${esc(SKILLS[id].name)}</b><span class="tag">${esc(SKILL_RANK[lv])}</span></div>`;
-  }).join("");
+  const skills = known.map(([id, lv]) => `<div class="skill"><b>${esc(SKILLS[id].name)}</b> <span class="tag">${esc(SKILL_RANK[lv])}</span><div class="muted">${esc(SKILLS[id].desc[lv] || "")}</div></div>`).join("")
+    || `<p class="muted">Навыков пока нет.</p>`;
   const bag = hero.backpack.map((id, i) => {
     const a = ARTIFACTS[id];
     if (!a) return "";
@@ -483,23 +480,20 @@ export function heroHTML(game, heroId) {
     <header class="sheeth"><h2>${esc(hero.name)}</h2><button class="btn small ghost" data-act="close-modal">Закрыть</button></header>
     <div class="body">
       <p class="kicker">${esc(FACTIONS[hero.faction].name)} · уровень ${hero.level} · опыт ${hero.xp}/${next}</p>
-      <div class="hero-top">
-        <div class="statcol">
+      <div class="hero-face">
+        <img src="${esc(hero.portrait)}" alt="">
+        <div class="stats">
           <div class="stat"><b>${e.attack}</b><span>атака</span></div>
           <div class="stat"><b>${e.defense}</b><span>защита</span></div>
           <div class="stat"><b>${e.power}</b><span>сила</span></div>
           <div class="stat"><b>${e.knowledge}</b><span>знание</span></div>
         </div>
-        <div class="doll">
-          <div class="doll-col">${left}</div>
-          <img class="doll-fig" src="${esc(hero.portrait)}" alt="">
-          <div class="doll-col">${right}</div>
-        </div>
       </div>
       <p class="muted">мораль ${e.morale} · удача ${e.luck} · ход ${hero.movement}/${maxMove(hero)} · мана ${hero.mana}/${maxMana(hero)} · обзор ${e.sight}</p>
-      <div class="slots misc-row">${misc}</div>
+      <h3>Снаряжение</h3>
+      <div class="slots gear">${left}${right}${misc}</div>
       <h3>Навыки</h3>
-      <div class="skills8">${skills}</div>
+      <div class="stack">${skills}</div>
       <h3>Войско</h3>
       ${armyRow(hero.army, "hero:" + hero.id, you)}
       <div class="row">

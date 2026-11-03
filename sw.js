@@ -1,4 +1,4 @@
-const VERSION = "lk-1.3.0";
+const VERSION = "lk-1.4.0";
 const PRECACHE = [
   "./",
   "./art/battle/meadow.jpg",
