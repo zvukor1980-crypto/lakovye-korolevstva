@@ -976,6 +976,8 @@ function snapHero(hero, e) {
     sorcery: e.sorcery,
     resist: e.resist,
     faction: hero.faction,
+    portrait: hero.portrait,
+    rosterId: hero.rosterId,
   };
 }
 
@@ -1804,6 +1806,10 @@ function onNewDay(state) {
   if (cal.isWeekStart) {
     for (const t of state.towns) growTown(t, false);
     for (const o of state.objects) if (!o.removed && o.type === "dwelling") o.pool = (o.pool || 0) + (o.growth || 0);
+    state.log.push({
+      day: state.day,
+      text: "Неделя " + cal.weekInMonth + ", месяц " + cal.month + ". В жилищах новый набор.",
+    });
     for (const pl of state.players) {
       if (pl.eliminated) continue;
       for (const o of state.objects) {

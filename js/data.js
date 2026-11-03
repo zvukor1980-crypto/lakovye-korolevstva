@@ -1,6 +1,6 @@
 /** Статические данные «Лаковых королевств». Оригинальный мир, механика близкая к HoMM III. */
 
-export const GAME_VERSION = "1.2.0";
+export const GAME_VERSION = "1.3.0";
 
 export const RES_KEYS = ["gold", "lacquer", "resin", "pigment", "amber", "crystal", "pearl"];
 export const RES_NAME = {
@@ -518,11 +518,18 @@ export const DAY_NAMES = ["Блеск", "Смола", "Пигмент", "Янт�
 
 export function calendar(day) {
   const d = Math.max(1, day | 0);
+  const month = Math.floor((d - 1) / 28) + 1;
+  const weekInMonth = Math.floor(((d - 1) % 28) / 7) + 1;
+  const dayInWeek = ((d - 1) % 7) + 1;
   return {
     day: d,
     week: Math.floor((d - 1) / 7) + 1,
+    month,
+    weekInMonth,
+    dayInWeek,
     dayName: DAY_NAMES[(d - 1) % 7],
     isWeekStart: (d - 1) % 7 === 0,
+    label: "Месяц " + month + ", Неделя " + weekInMonth + ", День " + dayInWeek,
   };
 }
 

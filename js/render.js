@@ -192,7 +192,7 @@ export function drawMap(ctx, state, view) {
   for (let y = minY; y <= maxY; y++) for (let x = minX; x <= maxX; x++) cells.push([x, y]);
   cells.sort((a, b) => (a[0] + a[1]) - (b[0] + b[1]) || a[0] - b[0]);
 
-  const pathSet = new Set((path || []).map((t) => t.x + "," + t.y));
+  const pathSteps = Array.isArray(path) ? path : (path && path.full) || [];
   for (const [x, y] of cells) {
     const i = y * state.map.w + x;
     const seen = remembered(state, playerId, x, y);
@@ -200,7 +200,7 @@ export function drawMap(ctx, state, view) {
     const s = toScreen(c.x, c.y, cam, w, h);
     const dw = TW * cam.zoom, dh = TH * cam.zoom;
     if (!seen) {
-      drawDiamond(ctx, s.x, s.y, dw, dh, "rgba(6,3,5,.94)");
+      drawDiamond(ctx, s.x, s.y, dw + 1.2, dh + 1.2, "#000");
       continue;
     }
     const type = state.map.terrain[i];
@@ -226,33 +226,23 @@ export function drawMap(ctx, state, view) {
     }
     if (flags & FLAG_RIVER) drawRiver(ctx, dw, dh, time, flags & FLAG_FORD);
     if (type === T_WATER && !gimg) paintWaterShine(ctx, dw, dh, time, x, y);
-    if (pathSet.has(x + "," + y)) {
-      ctx.globalAlpha = 0.45;
-      drawDiamond(ctx, 0, 0, dw * 0.78, dh * 0.78, "rgba(231,197,106,.9)");
-      ctx.globalAlpha = 1;
-    }
+    if (type === T_GRASS || type === T_DIRT) drawTuft(ctx, dw, dh, x, y, type);
     ctx.restore();
-    const vis = inVision(state, playerId, x, y);
-    if ((type === T_FOREST || type === T_HILL) && vis) drawForestSprite(ctx, s.x, s.y, cam.zoom, time, x, y, type);
-    if (type === T_MOUNTAIN && vis) drawPeak(ctx, s.x, s.y, cam.zoom, time, x);
-    if (!vis) {
-      ctx.save();
-      ctx.translate(s.x, s.y);
-      ctx.globalAlpha = 0.55;
-      drawDiamond(ctx, 0, 0, dw, dh, "rgba(8,4,10,.85)");
-      ctx.restore();
-    }
+    if (type === T_FOREST || type === T_HILL) drawForestSprite(ctx, s.x, s.y, cam.zoom, time, x, y, type);
+    if (type === T_MOUNTAIN) drawPeak(ctx, s.x, s.y, cam.zoom, time, x);
   }
+  drawRoute(ctx, pathSteps, view);
 
   const props = [];
   for (const [x, y] of cells) {
-    if (!inVision(state, playerId, x, y)) continue;
+    if (!remembered(state, playerId, x, y)) continue;
+    const see = inVision(state, playerId, x, y);
     const town = townAt(state, x, y);
     const obj = objectAt(state, x, y);
     const hero = heroAt(state, x, y);
     if (town) props.push({ k: x + y + 0.2, draw: () => drawTown(ctx, state, town, cam, w, h, time) });
     if (obj) props.push({ k: x + y + 0.3, draw: () => drawObject(ctx, state, obj, cam, w, h, time) });
-    if (hero) props.push({ k: x + y + 0.6, draw: () => drawHero(ctx, state, hero, cam, w, h, time, hero.id === selectedId) });
+    if (hero && (see || hero.player === playerId)) props.push({ k: x + y + 0.6, draw: () => drawHero(ctx, state, hero, cam, w, h, time, hero.id === selectedId) });
   }
   props.sort((a, b) => a.k - b.k);
   for (const p of props) p.draw();
@@ -263,6 +253,128 @@ export function drawMap(ctx, state, view) {
   vg.addColorStop(1, "rgba(0,0,0,.28)");
   ctx.fillStyle = vg;
   ctx.fillRect(0, 0, w, h);
+}
+
+function drawTuft(ctx, dw, dh, x, y, type) {
+  const n = (x * 13 + y * 29) % 11;
+  if (n > 2) return;
+  ctx.save();
+  ctx.translate((n - 1) * dw * 0.12, -dh * 0.05);
+  if (n === 0) {
+    ctx.fillStyle = type === T_DIRT ? "#6b5340" : "#3d6b45";
+    ctx.beginPath();
+    ctx.ellipse(0, 0, dw * 0.06, dh * 0.08, 0, 0, Math.PI * 2);
+    ctx.fill();
+  } else {
+    ctx.fillStyle = n === 1 ? "#f2e2a0" : "#d7dde6";
+    ctx.beginPath();
+    ctx.arc(-dw * 0.08, dh * 0.02, Math.max(1.5, dw * 0.035), 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawRoute(ctx, steps, view) {
+  if (!steps || !steps.length) return;
+  const { cam, w, h } = view;
+  let left = view.moveLeft ?? 9999;
+  const moveMax = view.moveMax || left || 1;
+  let day = 1;
+  ctx.save();
+  for (let i = 0; i < steps.length; i++) {
+    const t = steps[i];
+    const cost = t.cost || 100;
+    if (cost > left) { day += 1; left = moveMax; }
+    const green = day === 1;
+    left -= cost;
+    const c = tileCenter(t.x, t.y);
+    const s = toScreen(c.x, c.y, cam, w, h);
+    let ang = -Math.PI / 2;
+    const prev = i > 0 ? steps[i - 1] : null;
+    if (prev) {
+      const pc = tileCenter(prev.x, prev.y);
+      const ps = toScreen(pc.x, pc.y, cam, w, h);
+      ang = Math.atan2(s.y - ps.y, s.x - ps.x);
+    }
+    const z = Math.max(0.7, cam.zoom);
+    ctx.save();
+    ctx.translate(s.x, s.y);
+    ctx.rotate(ang);
+    ctx.fillStyle = green ? "#b6f25c" : "#ff5d4a";
+    ctx.strokeStyle = "rgba(0,0,0,.7)";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(9 * z, 0);
+    ctx.lineTo(-7 * z, -6.5 * z);
+    ctx.lineTo(-2 * z, 0);
+    ctx.lineTo(-7 * z, 6.5 * z);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+    const next = steps[i + 1];
+    const endDay = !next || (next.cost || 100) > left;
+    if (endDay) {
+      ctx.font = `700 ${Math.round(12 * z)}px Manrope LK, sans-serif`;
+      ctx.textAlign = "center";
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = "#14080c";
+      ctx.strokeText(String(day), s.x, s.y - 12 * z);
+      ctx.fillStyle = green ? "#f3ffd4" : "#ffe0da";
+      ctx.fillText(String(day), s.x, s.y - 12 * z);
+    }
+  }
+  ctx.restore();
+}
+
+export function drawMinimap(canvas, state, playerId, cam, viewW, viewH) {
+  const ctx = canvas.getContext("2d");
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const W = 112, H = 112;
+  if (canvas.width !== Math.round(W * dpr)) {
+    canvas.width = Math.round(W * dpr);
+    canvas.height = Math.round(H * dpr);
+  }
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.fillStyle = "#050203";
+  ctx.fillRect(0, 0, W, H);
+  const mw = state.map.w, mh = state.map.h;
+  const cols = ["#2f6b3a", "#8a7044", "#c2a15a", "#d5dde8", "#3d5a32", "#7a2e24", "#4d6a38", "#1c4d2a", "#1a4a6a", "#5c6570"];
+  const tw = W / mw, th = H / mh;
+  for (let y = 0; y < mh; y++) for (let x = 0; x < mw; x++) {
+    if (!remembered(state, playerId, x, y)) continue;
+    const t = state.map.terrain[y * mw + x];
+    ctx.fillStyle = cols[t] || "#333";
+    ctx.fillRect(x * tw, y * th, tw + 0.4, th + 0.4);
+  }
+  for (const t of state.towns) {
+    if (!remembered(state, playerId, t.x, t.y)) continue;
+    const owner = state.players.find((p) => p.id === t.owner);
+    ctx.fillStyle = owner ? owner.color : "#e7c56a";
+    ctx.fillRect(t.x * tw - 1, t.y * th - 1, 3, 3);
+  }
+  for (const h of state.heroes) {
+    if (h.lost || !remembered(state, playerId, h.x, h.y)) continue;
+    ctx.fillStyle = state.players[h.player].color;
+    ctx.fillRect(h.x * tw - 1, h.y * th - 1, 3.5, 3.5);
+  }
+  if (cam && viewW) {
+    const corners = [
+      screenToTile(0, 0, cam, viewW, viewH),
+      screenToTile(viewW, 0, cam, viewW, viewH),
+      screenToTile(0, viewH, cam, viewW, viewH),
+      screenToTile(viewW, viewH, cam, viewW, viewH),
+    ].filter(Boolean);
+    if (corners.length) {
+      const minX = Math.min(...corners.map((c) => c.x));
+      const maxX = Math.max(...corners.map((c) => c.x));
+      const minY = Math.min(...corners.map((c) => c.y));
+      const maxY = Math.max(...corners.map((c) => c.y));
+      ctx.strokeStyle = "#e7c56a";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(minX * tw, minY * th, (maxX - minX + 1) * tw, (maxY - minY + 1) * th);
+    }
+  }
 }
 
 function drawDiamond(ctx, x, y, dw, dh, fill) {
@@ -378,18 +490,20 @@ function drawTown(ctx, state, town, cam, w, h, time) {
   const src = SPR.castle[town.faction] || fac.castle;
   primeArt(src);
   const img = painted(src);
-  const bh = 78 * cam.zoom;
+  const bh = 132 * cam.zoom;
+  const owner = state.players.find((p) => p.id === town.owner);
   ctx.save();
   ctx.translate(s.x, s.y);
   ctx.fillStyle = "rgba(0,0,0,.35)";
   ctx.beginPath();
-  ctx.ellipse(0, 10 * cam.zoom, 26 * cam.zoom, 8 * cam.zoom, 0, 0, Math.PI * 2);
+  ctx.ellipse(0, 10 * cam.zoom, 34 * cam.zoom, 10 * cam.zoom, 0, 0, Math.PI * 2);
   ctx.fill();
   if (img) drawFigure(ctx, img, 0, 8 * cam.zoom, bh, time, { seed: town.id, bob: 0.6, sway: 0.012 });
   else {
     ctx.fillStyle = fac.color;
     ctx.fillRect(-30 * cam.zoom, -bh, 60 * cam.zoom, bh);
   }
+  drawPennant(ctx, 16 * cam.zoom, -bh * 0.72, cam.zoom, owner ? owner.color : fac.color);
   if (town.buildings && (town.buildings.fort || town.buildings.tavern)) torch(ctx, 18 * cam.zoom, -bh * 0.55, time);
   ctx.restore();
 }
@@ -413,7 +527,7 @@ function drawObject(ctx, state, obj, cam, w, h) {
     primeArt(src);
     const img = painted(src) || painted(bodySrc(String(obj.guard.cr).replace(/_u$/, "")));
     if (!painted(bodySrc(String(obj.guard.cr).replace(/_u$/, "")))) primeArt(bodySrc(String(obj.guard.cr).replace(/_u$/, "")));
-    if (img) drawFigure(ctx, img, 0, 10 * z, 46 * z, performance.now(), { seed: obj.id, sway: 0.04 });
+    if (img) drawFigure(ctx, img, 0, 10 * z, 52 * z, performance.now(), { seed: obj.id, bob: 1.6, sway: 0.04 });
     else drawToken(ctx, null, 0, 0, 16 * z, "#c4374f", String(obj.guard.count));
     ctx.fillStyle = "#fff6d8";
     ctx.font = `700 ${11 * z}px Manrope LK, sans-serif`;
@@ -437,8 +551,10 @@ function drawObject(ctx, state, obj, cam, w, h) {
   } else if (obj.type === "mine") {
     primeArt(SPR.mine);
     const img = painted(SPR.mine);
-    if (img) drawFigure(ctx, img, 0, 10 * z, 40 * z, performance.now(), { seed: obj.id, bob: 0, sway: 0 });
+    if (img) drawFigure(ctx, img, 0, 10 * z, 44 * z, performance.now(), { seed: obj.id, bob: 0, sway: 0 });
     else drawMine(ctx, z, obj.res, "#888");
+    const owner = obj.owner && state.players.find((p) => p.id === obj.owner);
+    drawPennant(ctx, 12 * z, -24 * z, z, owner ? owner.color : "#9aa");
     torch(ctx, 8 * z, -18 * z, performance.now());
   } else if (obj.type === "artifact" || obj.type === "grail") {
     primeArt(SPR.gold);
@@ -536,8 +652,21 @@ function drawHero(ctx, state, hero, cam, w, h, time, selected) {
   }
   if (img && painted(src)) drawFigure(ctx, img, 0, 12 * z, 62 * z, time, { seed: hero.id, bob: 2.2, sway: 0.03 });
   else drawToken(ctx, img, 0, -16 * z, 16 * z, fac.color, "");
-  ctx.fillStyle = state.players[hero.player].color;
-  ctx.beginPath(); ctx.arc(16 * z, -40 * z, 4 * z, 0, Math.PI * 2); ctx.fill();
+  drawPennant(ctx, 18 * z, -46 * z, z, state.players[hero.player].color);
+  ctx.restore();
+}
+function drawPennant(ctx, x, y, z, color) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.fillStyle = "#1a120c";
+  ctx.fillRect(-1 * z, 0, 2 * z, 16 * z);
+  ctx.fillStyle = color || "#e7c56a";
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.lineTo(12 * z, 4 * z);
+  ctx.lineTo(0, 8 * z);
+  ctx.closePath();
+  ctx.fill();
   ctx.restore();
 }
 function drawMount(ctx, z, phase) {
@@ -593,12 +722,16 @@ export function roundImage(ctx, img, x, y, w, h, r) {
 /* ---------- бой ---------- */
 
 export function battleCamera(w, h) {
-  const size = 22;
-  const fieldW = size * Math.sqrt(3) * (BCOLS - 1 + 0.5) + size * 2;
-  const fieldH = size * 1.5 * (BROWS - 1) + size * 2;
-  const padX = 70;
-  const fit = Math.min((w - padX * 2) / fieldW, (h - 12) / fieldH);
-  return { x: fieldW / 2, y: fieldH * 0.48, zoom: fit, size };
+  const size = 34;
+  const span = size * Math.sqrt(3) * 7.2;
+  const zoom = Math.max(0.85, Math.min(1.3, (w * 0.98) / span));
+  const fieldH = size * 1.5 * (BROWS - 1);
+  return { x: size * Math.sqrt(3) * 3.6, y: fieldH * 0.5, zoom, size };
+}
+export function focusHex(cam, c, r) {
+  const p = hexPos(c, r, cam.size || 36);
+  cam.x = p.x;
+  cam.y = p.y;
 }
 
 function hexPos(c, r, size) {
@@ -639,6 +772,7 @@ function hexPath(ctx, x, y, size) {
 }
 
 export function drawBattle(ctx, battle, view) {
+  if (!battle) return;
   const { w, h, time, cam } = view;
   ctx.clearRect(0, 0, w, h);
   const bsrc = SPR.battle[battle.terrain] || SPR.battle.grass;
@@ -657,23 +791,25 @@ export function drawBattle(ctx, battle, view) {
   const size = (cam.size || 18) * cam.zoom;
   const reach = view.reach;
   const cur = view.currentUid;
+  const showGrid = view.grid !== false;
   for (let r = 0; r < BROWS; r++) for (let c = 0; c < BCOLS; c++) {
     const p = battleScreen(c, r, view);
-    hexPath(ctx, p.x, p.y, size * 0.96);
     const key = c + "," + r;
     const block = battle.obstacles[key];
-    let fill = "rgba(255,255,255,.07)";
-    if ((r + c) % 2 === 0) fill = "rgba(0,0,0,.12)";
-    if (block === "moat") fill = "rgba(20,70,90,.55)";
-    if (reach && reach.has(key)) fill = "rgba(231,197,106,.38)";
-    ctx.fillStyle = fill;
-    ctx.shadowColor = reach && reach.has(key) ? "rgba(80, 220, 255, .9)" : "rgba(255, 196, 90, .35)";
-    ctx.shadowBlur = reach && reach.has(key) ? 14 : 6;
-    ctx.fill();
-    ctx.strokeStyle = reach && reach.has(key) ? "rgba(150, 240, 255, .95)" : "rgba(255, 214, 130, .45)";
-    ctx.lineWidth = reach && reach.has(key) ? 2.4 : 1.3;
-    ctx.stroke();
-    ctx.shadowBlur = 0;
+    const hot = reach && reach.has(key);
+    if (showGrid || hot || block) {
+      hexPath(ctx, p.x, p.y, size * 0.96);
+      let fill = showGrid ? ((r + c) % 2 === 0 ? "rgba(0,0,0,.12)" : "rgba(255,255,255,.07)") : "rgba(0,0,0,0)";
+      if (block === "moat") fill = "rgba(20,70,90,.55)";
+      if (hot) fill = "rgba(80, 210, 120, .38)";
+      ctx.fillStyle = fill;
+      ctx.fill();
+      if (showGrid || hot) {
+        ctx.strokeStyle = hot ? "rgba(190, 255, 170, .95)" : "rgba(255, 214, 130, .45)";
+        ctx.lineWidth = hot ? 2.2 : 1.2;
+        ctx.stroke();
+      }
+    }
     if (block === "rock") drawRock(ctx, p.x, p.y, size);
     if (block === "tree") drawBattleTree(ctx, p.x, p.y, size);
     if (block === "wall" || block === "gate") drawWall(ctx, p.x, p.y, size, block, battle.wallHp[key] || 0);
@@ -684,6 +820,8 @@ export function drawBattle(ctx, battle, view) {
     const pos = stackVisualPos(s, view);
     drawBattleUnit(ctx, battle, s, pos.x, pos.y, size, time, s.uid === cur);
   }
+  drawSideHero(ctx, battle.heroes.left, w, h, time, false);
+  drawSideHero(ctx, battle.heroes.right, w, h, time, true);
   for (const f of view.floaters || []) {
     ctx.globalAlpha = Math.max(0, 1 - f.age);
     ctx.fillStyle = f.color || "#fff";
@@ -702,6 +840,24 @@ export function drawBattle(ctx, battle, view) {
   }
 }
 
+function drawSideHero(ctx, hero, w, h, time, flip) {
+  if (!hero) return;
+  const src = hero.rosterId ? rideSrc(hero.rosterId) : hero.portrait;
+  if (src) primeArt(src);
+  if (hero.portrait) primeArt(hero.portrait);
+  const img = (src && painted(src)) || (hero.portrait && painted(hero.portrait));
+  const bh = Math.min(108, h * 0.26);
+  const x = flip ? w - 24 : 24;
+  const y = h * 0.3;
+  ctx.save();
+  ctx.fillStyle = "rgba(0,0,0,.28)";
+  ctx.beginPath();
+  ctx.ellipse(x, y, 26, 8, 0, 0, Math.PI * 2);
+  ctx.fill();
+  if (img) drawFigure(ctx, img, x, y, bh, time, { seed: hero.id || 3, bob: 1.1, sway: 0.02, flip });
+  ctx.restore();
+}
+
 function stackVisualPos(stack, view) {
   const base = battleScreen(stack.c, stack.r, view);
   const mv = (view.moves || []).find((m) => m.uid === stack.uid);
@@ -717,7 +873,7 @@ function drawBattleUnit(ctx, battle, stack, x, y, size, time, active) {
   const base = String(stack.cr).replace(/_u$/, "");
   if (base !== stack.cr) primeArt(bodySrc(base));
   const img = painted(src) || painted(bodySrc(base));
-  const h = size * 6.4;
+  const h = size * 2.55;
   const fx = (typeof window !== "undefined" && window.LK && window.LK.fx && window.LK.fx[stack.uid]) || null;
   ctx.save();
   if (active) {
@@ -745,13 +901,19 @@ function drawBattleUnit(ctx, battle, stack, x, y, size, time, active) {
   ctx.fillRect(x - barW / 2, by, barW, 4);
   ctx.fillStyle = ratio > 0.5 ? "#4ade80" : ratio > 0.25 ? "#fbbf24" : "#f87171";
   ctx.fillRect(x - barW / 2, by, barW * ratio, 4);
-  ctx.font = `700 ${Math.max(11, size * 0.48)}px Manrope LK, sans-serif`;
+  const label = String(stack.count);
+  ctx.font = `700 ${Math.max(13, size * 0.5)}px Manrope LK, sans-serif`;
   ctx.textAlign = "center";
-  ctx.lineWidth = 3;
-  ctx.strokeStyle = "#14080c";
-  ctx.strokeText(String(stack.count), x, by - 2);
+  const tw = ctx.measureText(label).width;
+  const bx = x - tw / 2 - 5;
+  const bty = by - Math.max(16, size * 0.55);
+  ctx.fillStyle = "rgba(12,6,8,.88)";
+  ctx.strokeStyle = "rgba(231,197,106,.8)";
+  ctx.lineWidth = 1;
+  ctx.fillRect(bx, bty, tw + 10, Math.max(16, size * 0.48));
+  ctx.strokeRect(bx, bty, tw + 10, Math.max(16, size * 0.48));
   ctx.fillStyle = "#fff8e8";
-  ctx.fillText(String(stack.count), x, by - 2);
+  ctx.fillText(label, x, bty + Math.max(13, size * 0.38));
   if (stack.defending) {
     ctx.fillStyle = "rgba(125, 211, 252, .95)";
     ctx.font = `${Math.max(10, size * 0.36)}px Manrope LK, sans-serif`;

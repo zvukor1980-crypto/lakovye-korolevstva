@@ -1,4 +1,4 @@
-import { GAME_VERSION, SKIRMISH } from "./data.js";
+import { CREATURES, GAME_VERSION, SKIRMISH, calendar } from "./data.js";
 import { scenarioById } from "./engine.js";
 import {
   aiAct, beginTurn, buildStructure, buyMachine, buySpellbook, castAdventure, chooseLevel,
@@ -12,7 +12,7 @@ import {
   reachable, startFight,
 } from "./combat.js";
 import {
-  battleCamera, drawBattle, drawMap, preloadFactionArt, screenToHex, screenToTile, tileCenter,
+  battleCamera, drawBattle, drawMap, drawMinimap, focusHex, preloadFactionArt, screenToHex, screenToTile, tileCenter,
 } from "./render.js";
 import * as ui from "./ui.js";
 import * as saves from "./save.js";
@@ -27,6 +27,9 @@ const S = {
   battleCam: null,
   selected: null,
   path: null,
+  grid: true,
+  followUid: null,
+  seenWeek: 1,
   modal: null,
   busy: false,
   settings: loadSettings(),
@@ -111,11 +114,12 @@ function ensureShell() {
   if (document.getElementById("cv")) return;
   app.innerHTML = `<div class="game">
     <div class="topbar" id="topbar"></div>
-    <div class="stage"><canvas id="cv"></canvas></div>
+    <div class="stage"><canvas id="cv"></canvas><canvas id="minimap" width="192" height="192"></canvas></div>
     <div class="dock" id="dock"></div>
     <div id="modal"></div>
   </div>`;
   bindPointer(document.getElementById("cv"));
+  bindMinimap(document.getElementById("minimap"));
 }
 
 function human() {
@@ -132,9 +136,36 @@ function selectedHero() {
 function paintChrome() {
   if (!S.game || !document.getElementById("topbar")) return;
   document.getElementById("topbar").innerHTML = ui.topHTML(S.game);
-  document.getElementById("dock").innerHTML = ui.dockHTML(S.game, selectedHero(), S.mode);
+  document.getElementById("dock").innerHTML = ui.dockHTML(S.game, selectedHero(), S.mode, { grid: S.grid !== false });
+  const mm = document.getElementById("minimap");
+  if (mm) mm.classList.toggle("hidden", S.mode === "battle" || S.mode === "deploy");
   const modal = document.getElementById("modal");
   modal.innerHTML = S.modal ? modalHTML(S.modal) : "";
+  bindRanges();
+}
+
+function bindRanges() {
+  for (const id of ["rec-n", "dw-n"]) {
+    const range = document.getElementById(id);
+    const out = document.getElementById(id === "rec-n" ? "rec-out" : "dw-out");
+    if (!range || !out || range.dataset.bound) continue;
+    range.dataset.bound = "1";
+    const paint = () => { out.textContent = range.value; };
+    range.addEventListener("input", paint);
+    paint();
+  }
+}
+
+function bindMinimap(cv) {
+  cv.addEventListener("pointerdown", (e) => {
+    if (!S.game || S.mode === "battle" || S.mode === "deploy") return;
+    const r = cv.getBoundingClientRect();
+    const x = Math.max(0, Math.min(S.game.map.w - 1, Math.floor(((e.clientX - r.left) / r.width) * S.game.map.w)));
+    const y = Math.max(0, Math.min(S.game.map.h - 1, Math.floor(((e.clientY - r.top) / r.height) * S.game.map.h)));
+    const c = tileCenter(x, y);
+    S.cam.x = c.x;
+    S.cam.y = c.y;
+  });
 }
 
 function modalHTML(m) {
@@ -156,6 +187,17 @@ function modalHTML(m) {
   if (m.type === "split") return ui.splitHTML(m.id);
   if (m.type === "bspell") return ui.battleSpellsHTML(S.game);
   if (m.type === "portal") return ui.townPortalHTML(m.heroId, m.spellId, m.towns);
+  if (m.type === "hall") return ui.hallHTML(S.game, m.town);
+  if (m.type === "recruit") return ui.recruitHTML(S.game, m.town, m.building);
+  if (m.type === "mage") return ui.mageTownHTML(S.game, m.town);
+  if (m.type === "smith") return ui.smithHTML(S.game, m.town);
+  if (m.type === "creature") return ui.creatureHTML(m.id);
+  if (m.type === "event") return ui.eventHTML(m.title, m.text);
+  if (m.type === "week") return ui.weekHTML(S.game);
+  if (m.type === "heroes") return ui.heroesHTML(S.game);
+  if (m.type === "towns") return ui.townsHTML(S.game);
+  if (m.type === "blog") return ui.battleLogHTML(S.game.battle);
+  if (m.type === "surrender") return ui.surrenderHTML(m.cost);
   if (m.type === "confirm-end") return `<div class="modal-back"><div class="sheet"><header class="sheeth"><h2>Завершить ход?</h2></header><div class="body stack"><p>У героини ещё есть запас хода.</p><button class="btn primary" data-act="end-turn-force">Завершить</button><button class="btn ghost" data-act="close-modal">Остаться</button></div></div></div>`;
   if (m.type === "settings") return `<div class="modal-back"><div class="sheet"><div class="body">${ui.settingsHTML(S.settings)}</div></div></div>`;
   return "";
@@ -172,11 +214,21 @@ function frame(t) {
     if (cv.width !== bw || cv.height !== bh) { cv.width = bw; cv.height = bh; }
     const ctx = cv.getContext("2d");
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    const view = { cam: S.cam, w: rect.width, h: rect.height, time: t, playerId: human().id, path: S.path, selectedId: S.selected, floaters: S.floaters, particles: S.particles };
-    if (S.mode === "battle" || S.mode === "deploy") {
+    const heroNow = selectedHero();
+    const view = {
+      cam: S.cam, w: rect.width, h: rect.height, time: t, playerId: human().id,
+      path: S.path, selectedId: S.selected, floaters: S.floaters, particles: S.particles,
+      moveLeft: heroNow && heroNow.movement, moveMax: heroNow && maxMove(heroNow),
+      grid: S.grid !== false,
+    };
+    if ((S.mode === "battle" || S.mode === "deploy") && S.game.battle) {
       if (!S.battleCam) S.battleCam = battleCamera(rect.width, rect.height);
       const bcam = S.battleCam;
       const cur = S.game.battle && currentStack(S.game.battle);
+      if (cur && S.followUid !== cur.uid) {
+        S.followUid = cur.uid;
+        focusHex(bcam, cur.c, cur.r);
+      }
       let reach = null;
       if (cur && controllerOf(S.game.battle, cur) === "human") {
         reach = reachable(S.game.battle, cur).dist;
@@ -184,6 +236,8 @@ function frame(t) {
       drawBattle(ctx, S.game.battle, { ...view, cam: bcam, reach, currentUid: cur && cur.uid, fx: S.fx });
     } else {
       drawMap(ctx, S.game, view);
+      const mm = document.getElementById("minimap");
+      if (mm) drawMinimap(mm, S.game, human().id, S.cam, rect.width, rect.height);
     }
     const now = performance.now();
     for (const id of Object.keys(S.fx)) if (now - S.fx[id].t0 > 900) delete S.fx[id];
@@ -288,20 +342,30 @@ function mapTap(x, y) {
   }
   const path = findPath(g, hero, x, y);
   if (!path) { toast("Сюда не пройти."); beep(180, 0.08, "square"); return; }
-  S.path = path.full;
+  S.path = path;
   paintChrome();
   walk(hero, path);
+}
+
+function showEvent(title, text) {
+  return new Promise((resolve) => {
+    S.modal = { type: "event", title, text };
+    S._eventDone = resolve;
+    paintChrome();
+  });
 }
 
 async function walk(hero, path) {
   S.busy = true;
   const speed = S.settings.fast ? 40 : 110;
+  let full = (path.full || path.tiles).slice();
   for (const step of path.tiles) {
+    full = full.slice(1);
+    S.path = { full, tiles: full };
     const r = stepHero(S.game, hero.id, step.x, step.y);
     focus(hero);
     await wait(speed);
     if (!r.ok) { toast(r.error); break; }
-    if (r.message) toast(r.message);
     if (r.openTown) { S.modal = { type: "town", id: r.openTown }; break; }
     if (r.siege) { engage(S.game, hero.id, { townId: r.siege }); break; }
     if (r.battle || S.game.battle) break;
@@ -312,6 +376,7 @@ async function walk(hero, path) {
       break;
     }
     if (r.diplomacy) { S.modal = { type: "diplo", data: r.diplomacy }; break; }
+    if (r.message) await showEvent("На карте", r.message);
     if (checkLevel(hero)) break;
   }
   if (path.attack && !S.game.battle && !S.modal) {
@@ -346,6 +411,7 @@ async function runBattle() {
   const b = S.game.battle;
   if (!b) return;
   S.battleCam = null;
+  S.followUid = null;
   if (b.phase === "deploy" && (b.human.left || b.human.right)) {
     S.mode = "deploy";
     paintChrome();
@@ -447,6 +513,7 @@ async function showEvents(events = []) {
   const cv = document.getElementById("cv");
   const rect = cv ? cv.getBoundingClientRect() : { width: 300, height: 400 };
   for (const ev of events) {
+    noteBattle(ev);
     if (ev.type === "hit" || ev.type === "spellHit" || ev.type === "retal" || ev.type === "breath") {
       if (ev.from) S.fx[ev.from] = { kind: "attack", t0: performance.now() };
       if (ev.to) S.fx[ev.to] = { kind: ev.died ? "die" : "hit", t0: performance.now() };
@@ -461,7 +528,35 @@ async function showEvents(events = []) {
     }
     if (ev.type === "cast") burst(rect.width / 2, rect.height / 2, "#e9d5ff");
   }
-  if (events.length) await wait(S.settings.fast ? 40 : 160);
+  if (events.length) {
+    const dock = document.getElementById("dock");
+    if (dock) dock.innerHTML = ui.dockHTML(S.game, selectedHero(), S.mode, { grid: S.grid !== false });
+    await wait(S.settings.fast ? 40 : 160);
+  }
+}
+
+function noteBattle(ev) {
+  const b = S.game && S.game.battle;
+  if (!b) return;
+  const name = (uid) => {
+    const s = b.stacks.find((x) => x.uid === uid);
+    return s ? CREATURES[s.cr].name : "отряд";
+  };
+  let line = "";
+  if (ev.type === "hit" || ev.type === "retal" || ev.type === "breath") line = name(ev.from) + " бьёт " + name(ev.to) + ": " + (ev.dmg || 0) + (ev.killed ? " (−" + ev.killed + ")" : "");
+  else if (ev.type === "shoot") line = name(ev.uid) + " стреляет.";
+  else if (ev.type === "cast") line = "Произнесено заклинание.";
+  else if (ev.type === "defend") line = name(ev.uid) + " встаёт в защиту.";
+  else if (ev.type === "wait") line = name(ev.uid) + " ждёт.";
+  else if (ev.type === "round") line = "Раунд " + ev.round + ".";
+  else if (ev.type === "retreat") line = "Отступление.";
+  else if (ev.type === "surrender") line = "Сдача.";
+  else if (ev.type === "heal" || ev.type === "tent" || ev.type === "regen") line = name(ev.uid) + " восстанавливает силы.";
+  else if (ev.type === "wall") line = "Удар по стене.";
+  else if (ev.type === "catapult") line = ev.hit ? "Катапульта попала в стену." : "Катапульта промахнулась.";
+  if (!line) return;
+  b.log.push(line);
+  if (b.log.length > 40) b.log.splice(0, b.log.length - 40);
 }
 
 function hexCenterScreen(c, r, w, h) {
@@ -501,10 +596,6 @@ async function endPlayerTurn() {
   const g = S.game;
   const me = human();
   if (g.players[g.current].id !== me.id) return;
-  const hero = selectedHero();
-  if (hero && hero.movement > 250) {
-    if (!confirm("У героини ещё есть ход. Завершить?")) return;
-  }
   S.busy = true;
   const r = endTurn(g);
   toast(g.players[g.current].control === "human" ? "Ваш ход." : "Ход соперницы.");
@@ -517,6 +608,11 @@ async function endPlayerTurn() {
   }
   await runAI();
   S.busy = false;
+  const cal = S.game && calendar(S.game.day);
+  if (cal && cal.isWeekStart && S.game.day > 1 && S.seenWeek !== S.game.day && S.game.players[S.game.current].control === "human" && !S.modal) {
+    S.seenWeek = S.game.day;
+    S.modal = { type: "week" };
+  }
   paintChrome();
   autosave();
 }
@@ -577,6 +673,7 @@ function startGame(spec) {
   S.screen = "game";
   S.mode = "map";
   S.modal = { type: "brief" };
+  S.seenWeek = S.game.day;
   S.selected = S.game.heroes.find((h) => h.player === human().id && !h.lost)?.id || null;
   S.cam = { x: 0, y: 0, zoom: 1.5 };
   const h = selectedHero();
@@ -611,9 +708,13 @@ async function onAct(actName, el) {
       return;
     }
     if (actName === "back") { S.screen = "menu"; renderScreen(); return; }
-    if (actName === "close-modal") {
-      S.modal = null;
+    if (actName === "close-modal" || actName === "modal-back") {
+      const done = S._eventDone;
+      S._eventDone = null;
+      if (actName === "modal-back" && S.modal && S.modal.prev) S.modal = S.modal.prev;
+      else S.modal = null;
       S.aim = null;
+      if (done) done();
       if (S.screen !== "game") { S.screen = "menu"; renderScreen(); return; }
       paintChrome();
       return;
@@ -694,6 +795,58 @@ async function onAct(actName, el) {
       toast("Записано в слот " + el.dataset.id);
       S.slots = await saves.listSaves();
       paintChrome();
+      return;
+    }
+    if (actName === "open-heroes") { S.modal = { type: "heroes" }; paintChrome(); return; }
+    if (actName === "open-towns") { S.modal = { type: "towns" }; paintChrome(); return; }
+    if (actName === "pick-hero") {
+      const h = g.heroes.find((x) => String(x.id) === el.dataset.id);
+      if (h) { S.selected = h.id; focus(h); S.modal = { type: "hero", id: h.id }; }
+      paintChrome();
+      return;
+    }
+    if (actName === "open-hall") { S.modal = { type: "hall", town: el.dataset.town }; paintChrome(); return; }
+    if (actName === "back-town") { S.modal = { type: "town", id: el.dataset.town }; paintChrome(); return; }
+    if (actName === "town-hit") {
+      const id = el.dataset.id;
+      const town = el.dataset.town;
+      if (id === "tavern") {
+        const r = hireHero(g, town);
+        toast(r.message || r.error);
+        S.modal = { type: "town", id: town };
+      } else if (id === "market") S.modal = { type: "trade" };
+      else if (id === "blacksmith") S.modal = { type: "smith", town };
+      else if (String(id).startsWith("mage")) S.modal = { type: "mage", town };
+      else if (String(id).startsWith("dw") || String(id).startsWith("up")) S.modal = { type: "recruit", town, building: id };
+      else S.modal = { type: "hall", town };
+      paintChrome();
+      return;
+    }
+    if (actName === "creature") {
+      S.modal = { type: "creature", id: el.dataset.id, prev: S.modal };
+      paintChrome();
+      return;
+    }
+    if (actName === "recruit-go") {
+      const n = Number((document.getElementById("rec-n") || {}).value) || 1;
+      let r = recruit(g, el.dataset.town, el.dataset.cr, n, "hero");
+      if (!r.ok) r = recruit(g, el.dataset.town, el.dataset.cr, n, "garrison");
+      toast(r.message || r.error);
+      S.modal = { type: "town", id: el.dataset.town };
+      paintChrome();
+      return;
+    }
+    if (actName === "battle-grid") { S.grid = !(S.grid !== false); paintChrome(); return; }
+    if (actName === "battle-log") { S.modal = { type: "blog" }; paintChrome(); return; }
+    if (actName === "battle-surrender") {
+      S.modal = { type: "surrender", cost: Number(el.dataset.cost) || 0 };
+      paintChrome();
+      return;
+    }
+    if (actName === "battle-surrender-yes") {
+      S.modal = null;
+      const c = g.battle && currentStack(g.battle);
+      humanBattle({ type: "surrender", uid: c && c.uid });
       return;
     }
     if (actName === "build") {
@@ -947,6 +1100,7 @@ async function loadSlot(id) {
   const rec = await saves.readSave(id);
   if (!rec || !rec.data) { toast("Слот пуст."); return; }
   S.game = deserialize(rec.data);
+  S.seenWeek = S.game.day;
   S.screen = "game";
   S.mode = S.game.battle ? "battle" : "map";
   S.modal = null;

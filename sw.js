@@ -1,4 +1,4 @@
-const VERSION = "lk-1.2.0";
+const VERSION = "lk-1.3.0";
 const PRECACHE = [
   "./",
   "./art/battle/meadow.jpg",
@@ -140,7 +140,26 @@ const PRECACHE = [
   "./js/util.js",
   "./js/visual.js",
   "./manifest.webmanifest",
-  "./version.json"
+  "./version.json",
+  "./art/bodies/n_bandit_u.webp",
+  "./art/bodies/n_nomad_u.webp",
+  "./art/bodies/n_elem.webp",
+  "./art/bodies/n_elem_u.webp",
+  "./art/bodies/n_mage.webp",
+  "./art/bodies/el_air.webp",
+  "./art/bodies/el_fire.webp",
+  "./art/bodies/el_water.webp",
+  "./art/bodies/el_earth.webp",
+  "./art/bodies/ballista.webp",
+  "./art/bodies/tower.webp",
+  "./art/sprites/hall.webp",
+  "./art/sprites/market.webp",
+  "./art/sprites/smith.webp",
+  "./art/sprites/silo.webp",
+  "./art/sprites/dw-low.webp",
+  "./art/sprites/dw-mid.webp",
+  "./art/sprites/dw-high.webp",
+  "./art/sprites/grail.webp"
 ];
 
 self.addEventListener("install", (event) => {
