@@ -737,3 +737,86 @@ hr.sep { border: 0; border-top: 1px solid rgba(231,197,106,.18); margin: 8px 0; 
   .screen { padding-left: calc(18vw + var(--safe-left)); padding-right: calc(18vw + var(--safe-right)); }
   .modal-back { padding-left: calc(16vw + var(--safe-left)); padding-right: calc(16vw + var(--safe-right)); }
 }
+
+/* Roomier character cards and a quieter lacquer-and-gold finish. */
+:root { --muted: #d1c5b0; }
+.btn { transition: border-color .16s, background .16s, transform .16s; }
+.btn:active:not(:disabled) { transform: translateY(1px); }
+.btn:focus-visible { outline: 3px solid #fff0c2; outline-offset: 2px; }
+.sheet { background: linear-gradient(145deg, #231a21, #100f13 60%); }
+.portrait-lg, .hero-face {
+  background: radial-gradient(ellipse at 50% 30%, #52413c, #17151e 72%);
+  border: 1px solid #8d7954;
+}
+.portrait-lg { max-height: min(46dvh, 400px); }
+.hero-face img { max-height: min(38dvh, 320px); }
+.unit img { height: 94px; }
+.aslot img { height: 68px; }
+.herobar-port img { object-fit: contain; background: radial-gradient(#544138, #171119); }
+@media (max-height: 540px) {
+  .menu-lux { overflow-y: auto; }
+  .menu-crest h1 { font-size: 30px; }
+  .menu-actions.lux { margin-top: 14px; }
+  .sheet { max-height: calc(100dvh - 20px - var(--safe-top) - var(--safe-bottom)); }
+}
+@media (prefers-reduced-motion: reduce) { .btn { transition: none; } }
+/* Four peoples / city commerce */
+.faction-picker { border:0; margin:18px 0; padding:0; }
+.faction-picker legend { font:700 27px "Cormorant LK",serif; }
+.faction-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin-top:12px; }
+.faction-option { position:relative; cursor:pointer; }
+.faction-option input { position:absolute; top:12px; left:12px; z-index:2; accent-color:#e8c779; width:20px; height:20px; }
+.faction-card { display:flex; flex-direction:column; height:100%; border:2px solid #53483d; border-radius:16px; padding:12px; background:radial-gradient(ellipse at 50% 20%,var(--faction),#17141b 75%); text-align:center; }
+.faction-card img { width:100%; height:210px; object-fit:contain; margin-bottom:10px; }
+.faction-card b { font:700 24px "Cormorant LK",serif; color:#ffebbd; }
+.faction-card small { margin-top:8px; color:#eee0d1; line-height:1.5; }
+.faction-option input:checked + .faction-card { border-color:#ffdf86; box-shadow:0 0 0 2px #9b733f,0 8px 24px #0008; }
+.faction-option input:focus-visible + .faction-card { outline:3px solid white; }
+.commerce-sheet { width:min(1100px,100%); }
+.commerce-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; margin:16px 0; }
+.commerce-card { display:flex; overflow:hidden; border:1px solid #6a5742; border-radius:16px; background:linear-gradient(145deg,#302632,#14121a); }
+.commerce-art { flex:0 0 36%; min-width:0; display:flex; align-items:center; background:radial-gradient(#6c5648,#211d26 75%); padding:10px; }
+.commerce-art img { width:100%; height:190px; object-fit:contain; }
+.commerce-copy { flex:1; min-width:0; padding:16px 12px; display:flex; flex-direction:column; align-items:flex-start; }
+.commerce-copy h3 { font-size:24px; margin-top:8px; }
+.commerce-copy p { font-size:13px; line-height:1.5; }
+.commerce-copy .btn { margin-top:auto; width:100%; font-size:14px; }
+.price { color:#ffe3a1; font-weight:700; line-height:1.65; font-size:13px; }
+.availability { color:#e1baa6; } .availability.ready { color:#9be7bb; }
+.is-built { opacity:.65; }
+.budget-bar { position:sticky; top:-10px; z-index:3; display:flex; flex-wrap:wrap; gap:6px; background:#171219f5; padding:12px 0; }
+.era-panel { border:1px solid #a88b51; border-radius:16px; padding:16px; margin:16px 0 28px; background:linear-gradient(120deg,#332934,#171e27); }
+.era-steps { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
+.era-steps span { padding:8px 12px; border:1px solid #64564a; border-radius:30px; color:#b6a79f; font-size:12px; }
+.era-steps .current { color:#211606; background:#edca7d; border-color:#edca7d; font-weight:700; }
+.era-steps .done { color:#a4dfb3; }
+.era-preview { display:flex; gap:20px; align-items:center; }
+.era-preview img { width:30%; height:245px; object-fit:contain; }
+.era-preview > div { flex:1; }
+.era-preview h3 { font-size:29px; }
+.era-preview p { font-size:14px; line-height:1.6; }
+.shop-heading { display:flex; align-items:center; gap:16px; margin-bottom:20px; }
+.shop-heading > img { height:160px; width:100px; object-fit:contain; }
+.shop-heading > div { flex:1; }
+.shop-heading h3 { font-size:30px; }
+.shop-section { border-top:1px solid #68543f; padding:18px 0; }
+.shop-section summary { cursor:pointer; font:700 25px "Cormorant LK",serif; padding:8px 0; color:#f5da9c; }
+.supply-card { display:flex; align-items:center; gap:12px; background:#28212a; border:1px solid #776049; border-radius:14px; padding:12px; text-align:left; min-height:100px; }
+.supply-card img { width:70px; height:80px; object-fit:contain; }
+.supply-card span { flex:1; } .supply-card b,.supply-card small { display:block; }
+.supply-card small { color:#d5c4b7; margin-top:7px; line-height:1.5; }
+.supply-card strong { color:#f3d48f; font-size:12px; }
+.section-art { display:block; width:100px; height:90px; object-fit:contain; margin:16px 0; }
+@media(max-width:650px) {
+ .faction-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+ .faction-card { padding:10px 8px; } .faction-card img { height:170px; } .faction-card b { font-size:21px; } .faction-card small { font-size:11px; }
+ .commerce-grid { grid-template-columns:1fr; }
+ .commerce-art img { height:180px; }
+ .era-panel { padding:12px; } .era-preview { gap:10px; } .era-preview img { width:27%; height:210px; }
+ .era-preview h3 { font-size:24px; } .era-preview p { font-size:12px; }
+ .era-steps { gap:5px; } .era-steps span { padding:7px 8px; font-size:11px; }
+ .shop-heading { flex-wrap:wrap; gap:10px; } .shop-heading > img { width:70px; height:110px; } .shop-heading h3 { font-size:24px; }
+ .shop-heading > .btn { width:100%; }
+}
+
+.bld-row .building-thumb { float:left; width:64px; height:76px; object-fit:contain; margin-right:12px; }

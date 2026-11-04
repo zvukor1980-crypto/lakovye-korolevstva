@@ -1,6 +1,48 @@
-const VERSION = "lk-1.8.0";
+const VERSION = "lk-2.0.0";
 const PRECACHE = [
   "./",
+  "./js/epochs.js",
+  "./art/towns/inca.jpg",
+  "./art/epochs/ancient-0-0.webp",
+  "./art/epochs/ancient-0-1.webp",
+  "./art/epochs/ancient-0-2.webp",
+  "./art/epochs/ancient-1-0.webp",
+  "./art/epochs/ancient-1-1.webp",
+  "./art/epochs/ancient-1-2.webp",
+  "./art/epochs/ancient-2-0.webp",
+  "./art/epochs/ancient-2-1.webp",
+  "./art/epochs/ancient-2-2.webp",
+  "./art/epochs/ancient-3-0.webp",
+  "./art/epochs/ancient-3-1.webp",
+  "./art/epochs/ancient-3-2.webp",
+  "./art/epochs/medieval-0-0.webp",
+  "./art/epochs/medieval-0-1.webp",
+  "./art/epochs/medieval-0-2.webp",
+  "./art/epochs/medieval-1-0.webp",
+  "./art/epochs/medieval-1-1.webp",
+  "./art/epochs/medieval-1-2.webp",
+  "./art/epochs/medieval-2-0.webp",
+  "./art/epochs/medieval-2-1.webp",
+  "./art/epochs/medieval-2-2.webp",
+  "./art/epochs/medieval-3-0.webp",
+  "./art/epochs/medieval-3-1.webp",
+  "./art/epochs/medieval-3-2.webp",
+  "./art/epochs/modern-0-0.webp",
+  "./art/epochs/modern-0-1.webp",
+  "./art/epochs/modern-0-2.webp",
+  "./art/epochs/modern-1-0.webp",
+  "./art/epochs/modern-1-1.webp",
+  "./art/epochs/modern-1-2.webp",
+  "./art/epochs/modern-2-0.webp",
+  "./art/epochs/modern-2-1.webp",
+  "./art/epochs/modern-2-2.webp",
+  "./art/epochs/modern-3-0.webp",
+  "./art/epochs/modern-3-1.webp",
+  "./art/epochs/modern-3-2.webp",
+
+  "./art/realistic/queen-0.webp",
+  "./art/realistic/queen-1.webp",
+  "./art/realistic/queen-2.webp",
   "./art/battle/meadow.jpg",
   "./art/battle/snow.jpg",
   "./art/battle/sun.jpg",
@@ -151,7 +193,7 @@ const PRECACHE = [
   "./version.json",
   "./art/ui/narrator.webp",
   "./art/ui/shopkeeper.webp",
-  "./art/ui/steward.webp"
+  "./art/ui/steward.webp",
   "./art/bodies/n_bandit_u.webp",
   "./art/bodies/n_nomad_u.webp",
   "./art/bodies/n_elem.webp",
@@ -174,12 +216,12 @@ const PRECACHE = [
 ];
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(caches.open(VERSION).then((cache) => cache.addAll(PRECACHE).catch(() => undefined)));
+  event.waitUntil(caches.open(VERSION).then((cache) => cache.addAll(PRECACHE)));
 });
 self.addEventListener("activate", (event) => {
   event.waitUntil((async () => {
     const keys = await caches.keys();
-    await Promise.all(keys.filter((k) => k !== VERSION).map((k) => caches.delete(k)));
+    await Promise.all(keys.filter((k) => k.startsWith("lk-") && k !== VERSION).map((k) => caches.delete(k)));
     await self.clients.claim();
   })());
 });

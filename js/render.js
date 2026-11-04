@@ -824,7 +824,7 @@ function drawHero(ctx, state, hero, cam, w, h, time, selected) {
   const c = tileCenter(hero.x, hero.y);
   const s = toScreen(c.x, c.y, cam, w, h);
   const z = cam.zoom;
-  const src = rideSrc(hero.rosterId);
+  const src = hero.portrait || rideSrc(hero.rosterId);
   primeArt(src);
   primeArt(hero.portrait);
   const img = painted(src) || painted(hero.portrait);
@@ -1035,7 +1035,7 @@ export function drawBattle(ctx, battle, view) {
 
 function drawSideHero(ctx, hero, w, h, time, flip) {
   if (!hero) return;
-  const src = hero.rosterId ? rideSrc(hero.rosterId) : hero.portrait;
+  const src = hero.portrait || rideSrc(hero.rosterId);
   if (src) primeArt(src);
   if (hero.portrait) primeArt(hero.portrait);
   const img = (src && painted(src)) || (hero.portrait && painted(hero.portrait));

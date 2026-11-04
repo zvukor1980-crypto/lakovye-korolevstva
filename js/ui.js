@@ -1,11 +1,12 @@
+import {eraId, eraStatus} from "./epochs.js";
 /** Разметка экранов. Вся речь интерфейса — по-русски. */
 
 import {
-  ARTIFACTS, CREATURES, FACTIONS, RES_KEYS, RES_NAME, ROSTER, SCENARIOS, SHOP_PACKS,
+  ERAS, FACTION_ORDER, BUILDING_IDS, eraArt, ARTIFACTS, CREATURES, FACTIONS, RES_KEYS, RES_NAME, ROSTER, SCENARIOS, SHOP_PACKS,
   SKILL_RANK, SKILLS, SKIRMISH, SPELLS, SLOTS, TRADE, buildingDef, calendar,
   portraitFor, tiersOf, wisdomCap, xpForLevel,
 } from "./data.js";
-import { costStr } from "./util.js";
+import { canAfford, costStr } from "./util.js";
 import { MACHINES } from "./data.js";
 import {
   availableBuildings, effective, heroById, maxMana, maxMove, playerById, skillLv, townById,
@@ -72,7 +73,7 @@ export function campaignHTML(done) {
       <button class="btn small" data-act="start-camp" data-id="${esc(sc.id)}" ${open ? "" : "disabled"}>В путь</button>
     </div>`;
   }).join("");
-  return sheet("Кампания", items + `<button class="btn ghost" data-act="back">Назад</button>`);
+  return sheet("Кампания", factionChoice() + items + `<button class="btn ghost" data-act="back">Назад</button>`);
 }
 
 export function skirmishHTML() {
@@ -80,7 +81,7 @@ export function skirmishHTML() {
   const facs = Object.values(FACTIONS).map((f) => `<option value="${f.id}">${esc(f.name)}</option>`).join("");
   return sheet("Стычка", `
     <label class="field">Карта<select id="sk-map">${maps}</select></label>
-    <label class="field">Ваш двор<select id="sk-fac">${facs}</select></label>
+    ${factionChoice()}
     <label class="field">Путь<select id="sk-role"><option value="might">Сила</option><option value="magic">Магия</option></select></label>
     <label class="field">Сложность соперниц<select id="sk-diff"><option value="easy">Мягкая</option><option value="normal" selected>Обычная</option><option value="hard">Жёсткая</option></select></label>
     <p class="float-note">Семена карты каждый раз новые. Победа — погасить все чужие знамёна.</p>
@@ -113,7 +114,7 @@ export function saveHTML(slots) {
 }
 
 export function bestiaryHTML() {
-  const blocks = ["scarlet", "emerald", "onyx"].map((fid) => {
+  const blocks = FACTION_ORDER.map((fid) => {
     const f = FACTIONS[fid];
     const units = tiersOf(fid).map((b) => {
       const up = CREATURES[b.levelUpTo];
@@ -136,42 +137,16 @@ export function settingsHTML(st) {
 }
 
 export function shopHTML(game) {
-  if (!game) {
-    return sheet("Лавка двора", `<p class="help">Лавка открывается в партии: ресурсы, отряды, артефакты и свитки без ограничений, таймеров и платы.</p><button class="btn ghost" data-act="back">Назад</button>`);
-  }
-  const p = game.players.find((pl) => pl.control === "human") || game.players[game.current];
-  const heroes = game.heroes.filter((h) => h.player === p.id && !h.lost);
-  const heroOpts = heroes.map((h) => `<option value="${h.id}">${esc(h.name)}</option>`).join("");
-  const crs = Object.values(CREATURES).filter((c) => c.growth || c.tier).map((c) => `<option value="${c.id}">${esc(c.name)}</option>`).join("");
-  const arts = Object.values(ARTIFACTS).map((a) => `<option value="${a.id}">${esc(a.name)}</option>`).join("");
-  const spells = Object.values(SPELLS).map((s) => `<option value="${s.id}">${esc(s.name)}</option>`).join("");
-  const towns = game.towns.filter((t) => t.owner === p.id);
-  const townOpts = towns.map((t) => `<option value="${t.id}">${esc(t.name)}</option>`).join("");
-  const bopts = towns[0] ? availableBuildings(game, towns[0]).map((b) => `<option value="${b.id}">${esc(b.name)}</option>`).join("") : "";
-  const packs = SHOP_PACKS.map((pk) => `<button class="btn small" data-act="shop-pack" data-id="${pk.id}">${esc(pk.name)}<div class="float-note">${esc(pk.desc)}</div></button>`).join("");
-  return sheet("Лавка двора", `
-    <div class="voice"><img src="art/ui/shopkeeper.webp" alt=""><div><b>Лавочница Мира</b><p>Берите без счёта. Ни таймеров, ни платы.</p></div></div>
-    <p class="kicker">Бесплатно · без ограничений · без отката</p>
-    <div class="stack">${packs}</div>
-    <hr class="sep">
-    <label class="field">Героиня<select id="shop-hero">${heroOpts}</select></label>
-    <div class="row">
-      <button class="btn small" data-act="shop-refresh">Полный ход и мана</button>
-      <button class="btn small" data-act="shop-stats">+1 ко всем</button>
-      <button class="btn small" data-act="shop-level">Уровень</button>
-    </div>
-    <label class="field">Отряд<select id="shop-cr">${crs}</select></label>
-    <label class="field">Число<input id="shop-n" type="number" min="1" value="20"></label>
-    <button class="btn" data-act="shop-troops">Зачислить отряд</button>
-    <label class="field">Артефакт<select id="shop-art">${arts}</select></label>
-    <button class="btn" data-act="shop-art">Положить в сумку</button>
-    <label class="field">Заклинание<select id="shop-sp">${spells}</select></label>
-    <button class="btn" data-act="shop-spell">Вписать в книгу</button>
-    <button class="btn" data-act="shop-reveal">Открыть карту</button>
-    <label class="field">Город<select id="shop-town">${townOpts}</select></label>
-    <label class="field">Строение<select id="shop-bld">${bopts}</select></label>
-    <button class="btn" data-act="shop-build">Возвести указом</button>
-    <button class="btn ghost" data-act="close-modal">Закрыть</button>`);
+ if(!game)return sheet("Лавка",`<p>Начните партию: здесь можно бесплатно получить ресурсы, войска и предметы.</p><button class="btn" data-act="back">Назад</button>`);
+ const p=game.players.find(p=>p.control==="human"), era=p.era||0;
+ const heroes=game.heroes.filter(h=>h.player===p.id&&!h.lost);
+ const heroOpts=heroes.map(h=>`<option value="${h.id}">${esc(h.name)}</option>`).join("");
+ const troops=tiersOf(p.faction).flatMap(c=>[c.id,c.levelUpTo]).filter(Boolean).map(id=>CREATURES[eraId(id,era)]).map(c=>`<article class="commerce-card"><div class="commerce-art"><img src="${portraitFor(c.id)}" alt="${esc(c.name)}" loading="lazy"></div><div class="commerce-copy"><span class="tag">Ранг ${c.tier} · ${c.ranged?"Стрелок":"Ближний бой"}</span><h3>${esc(c.name)}</h3><p>Атака ${c.atk} · Защита ${c.def}<br>Здоровье ${c.hp} · Урон ${c.min}–${c.max}</p><button class="btn primary" data-act="shop-card-unit" data-cr="${c.id}" ${heroes.length?"":"disabled"}>Получить бесплатно</button></div></article>`).join("");
+ const packs=SHOP_PACKS.map(pk=>`<button class="supply-card" data-act="shop-pack" data-id="${pk.id}"><img src="art/sprites/gold.webp" alt=""><span><b>${esc(pk.name)}</b><small>${esc(pk.desc)}</small></span><strong>Получить</strong></button>`).join("");
+ const arts=Object.values(ARTIFACTS).map(a=>`<option value="${a.id}">${esc(a.name)} — ${esc(a.desc)}</option>`).join("");
+ const spells=Object.values(SPELLS).map(a=>`<option value="${a.id}">${esc(a.name)} — ${esc(a.desc)}</option>`).join("");
+ const towns=game.towns.filter(t=>t.owner===p.id).map(t=>`<h3>${esc(t.name)}</h3><div class="commerce-grid">${availableBuildings(game,t).map(b=>`<button class="supply-card" data-act="shop-card-build" data-town="${t.id}" data-id="${b.id}"><img src="${buildingArt(b,t,era)}" alt=""><span><b>${esc(b.name)}</b><small>${esc(b.desc)}</small></span><strong>Возвести</strong></button>`).join("")||"Все доступные здания уже построены."}</div>`).join("");
+ return sheet("Лавка двора",`<div class="shop-heading"><img src="${eraArt(p.faction,era,2)}" alt="Лавочница"><div><span class="kicker">${esc(ERAS[era].name)}</span><h3>Всё для вашего королевства</h3><p>Бесплатная помощь. Золото не списывается.</p></div><button class="btn ghost" data-act="close-modal">Закрыть</button></div><label class="field">Кому передать покупки<select id="shop-hero">${heroOpts}</select></label><details class="shop-section" open><summary>Ресурсы и помощь</summary><div class="commerce-grid">${packs}</div><div class="row"><button class="btn" data-act="shop-refresh">Восстановить ход и ману</button><button class="btn" data-act="shop-stats">+1 к характеристикам</button><button class="btn" data-act="shop-level">Повысить уровень</button></div></details><details class="shop-section" open><summary>Воительницы · ${esc(FACTIONS[p.faction].name)}</summary><label class="field">Количество в получаемом отряде<input id="shop-n" type="number" min="1" max="9999" value="20"></label><div class="commerce-grid">${troops}</div></details><details class="shop-section"><summary>Артефакты и заклинания</summary><img class="section-art" src="art/sprites/chest.webp" alt="Сундук с сокровищами"><label class="field">Артефакт<select id="shop-art">${arts}</select></label><button class="btn primary" data-act="shop-art">Получить артефакт</button><label class="field">Заклинание<select id="shop-sp">${spells}</select></label><button class="btn" data-act="shop-spell">Получить заклинание</button><button class="btn" data-act="shop-reveal">Открыть карту</button></details><details class="shop-section"><summary>Бесплатные здания</summary><p class="muted">Указ лавки не требует ресурсов. Зависимости зданий сохраняются.</p>${towns}</details>`);
 }
 
 export function voiceHTML(name, line) {
@@ -197,7 +172,7 @@ export function topHTML(game) {
   const cal = calendar(game.day);
   const you = p.control === "human";
   return `<div class="woodtop">
-      <div class="dayline"><strong>${esc(cal.label)}</strong><span>${esc(cal.dayName)}${you ? "" : " · " + esc(p.name)}</span>
+      <div class="dayline"><strong>${esc(cal.label)}</strong><span>${esc(ERAS[p.era||0].name)} · ${esc(cal.dayName)}${you ? "" : " · " + esc(p.name)}</span>
         <button class="btn icon" data-act="open-system" aria-label="Меню"></button>
       </div>
       <div class="resbar">${resourcesHTML(p.resources)}</div>
@@ -319,7 +294,7 @@ function townSpots(town) {
   spots.push({ id: hallId, art: BLD_SPRITE.hall, x: 46, y: 18, h: b.capitol ? 128 : b.cityHall ? 116 : 104 });
   if (b.castle || b.citadel || b.fort) {
     const id = b.castle ? "castle" : b.citadel ? "citadel" : "fort";
-    spots.push({ id, art: `art/sprites/castle-${town.faction}.webp`, x: 14, y: 12, h: b.castle ? 142 : 118 });
+    spots.push({ id, art: `art/sprites/castle-${town.faction === "inca" ? "emerald" : town.faction}.webp`, x: 14, y: 12, h: b.castle ? 142 : 118 });
   }
   let mage = 0;
   for (let i = 5; i >= 1; i--) if (b["mage" + i]) { mage = i; break; }
@@ -364,18 +339,18 @@ export function townHTML(game, townId) {
   const built = standing.map((id) => {
     const def = buildingDef(town.faction, id) || { name: id, desc: "" };
     const name = def.name.replace(/^Жилище: /, "").replace(/^Улучшение: /, "");
-    return `<button class="btn bld-row" data-act="town-hit" data-town="${town.id}" data-id="${id}"><b>${esc(name)}</b><span>${esc(def.desc || "")}</span></button>`;
+    return `<button class="btn bld-row" data-act="town-hit" data-town="${town.id}" data-id="${id}"><img class="building-thumb" src="${buildingArt(def,town)}" alt=""><b>${def.tier?"Нанять: ":""}${esc(name)}</b><span>${esc(def.desc || "")}</span></button>`;
   }).join("");
   const bar = standing.map((id) => {
     const def = buildingDef(town.faction, id) || { name: id };
     const name = (def.name || id).replace(/^Жилище: /, "").replace(/^Улучшение: /, "").split(" ")[0];
     return `<button class="btn small" data-act="town-hit" data-town="${town.id}" data-id="${id}">${esc(name)}</button>`;
   }).join("");
-  const fortSrc = town.buildings.fort || town.buildings.citadel || town.buildings.castle ? `art/sprites/castle-${town.faction}.webp` : BLD_SPRITE.hall;
+  const fortSrc = town.buildings.fort || town.buildings.citadel || town.buildings.castle ? `art/sprites/castle-${town.faction === "inca" ? "emerald" : town.faction}.webp` : BLD_SPRITE.hall;
   return `<div class="modal-back"><div class="sheet town-sheet">
     <div class="town-stage" style="background-image:url(art/towns/${town.faction}.jpg)">
       <img class="town-deco" src="${fortSrc}" alt="">
-      <img class="town-steward" src="art/ui/steward.webp" alt="">
+      <img class="town-steward" src="${eraArt(town.faction,playerById(game,town.owner)?.era||0,2)}" alt="">
       <div class="town-caption">${esc(town.name)}<small>${esc(fac.name)}</small></div>
     </div>
     <header class="sheeth">
@@ -383,14 +358,15 @@ export function townHTML(game, townId) {
       <button class="btn small ghost" data-act="close-modal">Закрыть</button>
     </header>
     <div class="town-body">
+      <p class="kicker">${esc(ERAS[playerById(game,town.owner)?.era||0].name)} · ${town.builtToday?"Сегодня уже строили":"Можно построить одно здание"}</p>
       <div class="build-bar">${bar}</div>
       <div class="army-line"><span>${visitor ? esc(visitor.name) : "В гостях"}</span>${visitor ? armyRow(visitor.army, "hero:" + visitor.id, you) : `<p class="muted">Героини в городе нет. Поставьте её на замок.</p>`}</div>
       <div class="army-line"><span>Гарнизон</span>${armyRow(town.garrison, "garrison", you)}</div>
       <div class="row">
-        ${you ? `<button class="btn small primary" data-act="open-hall" data-town="${town.id}">Строить</button>` : ""}
+        ${you ? `<button class="btn small primary" data-act="open-hall" data-town="${town.id}">Строительство и эпохи</button>` : ""}
         ${you ? `<button class="btn small" data-act="open-trade" data-town="${town.id}" ${town.buildings.market ? "" : "disabled"}>Рынок</button>` : ""}
       </div>
-      <h3>Уже стоит</h3>
+      <h3>Здания и найм войск</h3>
       <div class="stack">${built || `<p class="muted">Пока только покои. Откройте «Строить».</p>`}</div>
       <p class="float-note">${town.builtToday ? "Сегодня уже строили." : "Один дом в день. Повторное касание слота войска открывает сведения."}</p>
     </div>
@@ -398,20 +374,16 @@ export function townHTML(game, townId) {
 }
 
 export function hallHTML(game, townId) {
-  const town = townById(game, townId);
-  if (!town) return "";
-  const you = playerById(game, town.owner) && game.players[game.current].id === town.owner && playerById(game, town.owner).control === "human";
-  const avail = you ? availableBuildings(game, town) : [];
-  const cards = avail.map((b) => `<article class="bld-card">
-      <b>${esc(b.name)}</b>
-      <p>${esc(b.desc)}</p>
-      <div class="muted">${esc(costStr(b.cost))}</div>
-      <button class="btn small primary" data-act="build" data-town="${town.id}" data-id="${b.id}" ${town.builtToday ? "disabled" : ""}>Строить</button>
-    </article>`).join("");
-  const built = Object.keys(town.buildings).filter((id) => town.buildings[id]).map((id) => esc((buildingDef(town.faction, id) || {}).name || id)).join(" · ");
-  return `<div class="modal-back"><div class="sheet"><header class="sheeth"><h2>Ратуша</h2><button class="btn small ghost" data-act="back-town" data-town="${town.id}">Назад</button></header>
-    <div class="body"><div class="card-grid">${cards || `<p class="muted">Строить пока нечего.</p>`}</div>
-    <p class="muted">Уже стоит: ${built || "только покои"}</p></div></div></div>`;
+  const town=townById(game,townId);if(!town)return "";
+  const p=playerById(game,town.owner), you=p.control==="human"&&game.players[game.current].id===p.id;
+  const allowed=new Set(availableBuildings(game,town).map(b=>b.id));
+  const cards=BUILDING_IDS.map(id=>buildingDef(town.faction,id)).filter(Boolean).map(b=>{
+    const built=!!town.buildings[b.id], missing=(b.req||[]).filter(id=>!town.buildings[id]);
+    const affordable=canAfford(p.resources,b.cost), ready=you&&!built&&!town.builtToday&&allowed.has(b.id)&&affordable;
+    const reasons=built?"Построено":missing.length?"Сначала: "+missing.map(id=>buildingDef(town.faction,id)?.name||id).join(", "):b.needsGrail&&!allowed.has(b.id)?"Найдите Корону Блеска":town.builtToday?"Следующая стройка — завтра":!affordable?"Не хватает: "+costStr(Object.fromEntries(Object.entries(b.cost).filter(([k,v])=>(p.resources[k]||0)<v).map(([k,v])=>[k,v-(p.resources[k]||0)]))):"Можно построить";
+    return {ready,built,html:`<article class="commerce-card ${built?"is-built":""}"><div class="commerce-art"><img src="${buildingArt(b,town,p.era||0)}" alt="${esc(b.name)}" loading="lazy"></div><div class="commerce-copy"><span class="tag">${built?"Готово":b.tier?"Войска · ранг "+b.tier:"Город"}</span><h3>${esc(b.name)}</h3><p>${esc(b.desc)}</p><div class="price">${esc(costStr(b.cost))}</div><p class="availability ${ready?"ready":""}">${esc(reasons)}</p><button class="btn ${ready?"primary":"ghost"}" data-act="build" data-town="${town.id}" data-id="${b.id}" ${ready?"":"disabled"}>${built?"Построено":"Построить"}</button></div></article>`};
+  }).sort((a,b)=>Number(b.ready)-Number(a.ready)||Number(a.built)-Number(b.built)).map(c=>c.html).join("");
+  return `<div class="modal-back"><div class="sheet commerce-sheet"><header class="sheeth"><h2>Строительство</h2><button class="btn small ghost" data-act="back-town" data-town="${town.id}">В город</button></header><div class="body"><div class="budget-bar">${resourcesHTML(p.resources)}</div>${eraPanel(game,town)}<h3>Здания города</h3><p class="muted">Одно здание или переход эпохи в день. Доступные покупки стоят первыми.</p><div class="commerce-grid">${cards}</div></div></div></div>`;
 }
 
 export function recruitHTML(game, townId, buildingId) {
@@ -421,22 +393,24 @@ export function recruitHTML(game, townId, buildingId) {
   const base = tiersOf(town.faction)[tier - 1];
   if (!base) return "";
   const up = town.buildings["up" + tier] && base.levelUpTo;
-  const id = up ? base.levelUpTo : base.id;
+  const p=playerById(game,town.owner);
+  const id = eraId(up ? base.levelUpTo : base.id,p.era||0);
   const cr = CREATURES[id];
   const pool = town.pool[base.id] || 0;
   const cost = esc(costStr(cr.cost));
+  const affordable=Math.max(0,Math.min(pool,...Object.entries(cr.cost).filter(([,v])=>v>0).map(([k,v])=>Math.floor((p.resources[k]||0)/v))));
   return `<div class="modal-back"><div class="sheet"><header class="sheeth"><h2>${esc(cr.name)}</h2><button class="btn small ghost" data-act="back-town" data-town="${town.id}">Назад</button></header>
     <div class="body stack">
       <img class="portrait-lg" src="${portraitFor(id)}" alt="" style="max-height:200px">
-      <p>${esc(cr.desc)}</p>
-      <p class="muted">В жилище ${pool}. Цена за одну: ${cost}.</p>
+      <p>${esc(cr.desc)}</p><p class="muted">${game.heroes.some(h=>!h.lost&&h.player===town.owner&&h.x===town.x&&h.y===town.y)?"Отряд присоединится к героине в городе.":"Отряд поступит в гарнизон города. Приведите героиню, чтобы забрать его."}</p>
+      <p class="muted">Доступно: <b>${pool}</b> · Хватает ресурсов на: <b>${affordable}</b><br>Цена за одну: ${cost}.</p>
       <label class="field">Сколько нанять
-        <input id="rec-n" type="range" min="1" max="${Math.max(1, pool)}" value="${Math.max(1, Math.min(pool, pool))}" ${pool ? "" : "disabled"}>
+        <input id="rec-n" type="range" min="1" max="${Math.max(1, affordable)}" value="${Math.max(1, affordable)}" ${affordable ? "" : "disabled"}>
       </label>
       <div id="rec-out" class="kicker" data-cost="${esc(JSON.stringify(cr.cost))}">1</div>
       <div class="row">
-        <button class="btn primary" data-act="recruit-go" data-town="${town.id}" data-cr="${id}" ${pool ? "" : "disabled"}>Нанять</button>
-        <button class="btn" data-act="recruit-max" data-town="${town.id}" data-cr="${id}" data-n="${pool}" ${pool ? "" : "disabled"}>Нанять всех</button>
+        <button class="btn primary" data-act="recruit-go" data-town="${town.id}" data-cr="${id}" ${affordable ? "" : "disabled"}>Нанять</button>
+        <button class="btn" data-act="recruit-max" data-town="${town.id}" data-cr="${id}" data-n="${affordable}" ${affordable ? "" : "disabled"}>На все доступные средства</button>
         <button class="btn" data-act="creature" data-id="${id}">О существе</button>
       </div>
     </div></div></div>`;
@@ -687,9 +661,9 @@ export function dwellingHTML(game, hero, obj) {
     <div class="body stack">
       <img class="portrait-lg" src="${portraitFor(obj.creature)}" alt="" style="max-height:180px">
       <p>Доступно ${pool}. Цена: ${esc(costStr(cr.cost))}.</p>
-      <label class="field">Сколько<input id="dw-n" type="range" min="1" max="${Math.max(1, pool)}" value="${Math.max(1, Math.min(pool, pool))}" ${pool ? "" : "disabled"}></label>
+      <label class="field">Сколько<input id="dw-n" type="range" min="1" max="${Math.max(1, affordable)}" value="${Math.max(1, affordable)}" ${affordable ? "" : "disabled"}></label>
       <div id="dw-out" class="kicker">${Math.min(pool, pool) || 0}</div>
-      <button class="btn primary" data-act="dwell-buy" data-hero="${hero.id}" data-obj="${obj.id}" ${pool ? "" : "disabled"}>Нанять в армию</button>
+      <button class="btn primary" data-act="dwell-buy" data-hero="${hero.id}" data-obj="${obj.id}" ${affordable ? "" : "disabled"}>Нанять в армию</button>
     </div></div></div>`;
 }
 
@@ -764,3 +738,8 @@ export function townPortalHTML(heroId, spellId, towns) {
 }
 
 export { attackOptions, currentStack };
+
+export function resourceName(k){return RES_NAME[k]||k;}
+function factionChoice(){return `<fieldset class="faction-picker"><legend>Выберите свой народ</legend><div class="faction-grid">${FACTION_ORDER.map((id,i)=>`<label class="faction-option"><input type="radio" name="faction-choice" value="${id}" ${i===0?"checked":""}><span class="faction-card" style="--faction:${FACTIONS[id].color}"><img src="${eraArt(id,0,0)}" alt="${esc(FACTIONS[id].name)}"><b>${esc(FACTIONS[id].name)}</b><small>${esc(FACTIONS[id].blurb)}</small></span></label>`).join("")}</div><p class="muted">Соперницы принадлежат другим народам. Все начинают с древности.</p></fieldset>`;}
+function buildingArt(b,town,era=0){if(b.tier)return portraitFor(eraId(tiersOf(town.faction)[b.tier-1]?.id||"s_page",era));if(/Hall|capitol/.test(b.id))return BLD_SPRITE.hall;if(/fort|citadel|castle/.test(b.id))return `art/sprites/castle-${town.faction==="inca"?"emerald":town.faction}.webp`;if(b.id.startsWith("mage"))return BLD_SPRITE.mage;return BLD_SPRITE[b.id]||BLD_SPRITE[b.id==="blacksmith"?"smith":b.id==="special"?"mage":"silo"];}
+function eraPanel(game,town){const s=eraStatus(game,town),p=playerById(game,town.owner);return `<section class="era-panel"><div class="era-steps">${ERAS.map(e=>`<span class="${e.id===s.current?"current":e.id<s.current?"done":""}">${e.id<s.current?"✓ ":""}${e.name}</span>`).join("")}</div>${s.next?`<div class="era-preview"><img src="${eraArt(p.faction,s.next.id,0)}" alt="Образ следующей эпохи"><div><h3>Открыть: ${s.next.name}</h3><p>${esc(s.next.desc)}</p><p class="price">${esc(costStr(s.next.cost))}</p><p class="muted">${s.reasons.map(r=>r.startsWith("building:")?"Нужно здание: "+(buildingDef(town.faction,r.split(":")[1])?.name||r):r.startsWith("resource:")?"Не хватает: "+r.split(":")[2]+" "+resourceName(r.split(":")[1]):r).map(esc).join("<br>")||"Все условия выполнены"}</p><button class="btn primary" data-act="research-era" data-town="${town.id}" ${s.ready&&p.control==="human"?"":"disabled"}>Перейти в новую эпоху</button></div></div>`:`<h3>Современная цивилизация</h3><p>Ваши воительницы используют новейшее снаряжение.</p>`}</section>`;}

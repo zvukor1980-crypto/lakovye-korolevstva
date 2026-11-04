@@ -33,8 +33,9 @@ async function idbOp(mode, fn) {
     const tx = db.transaction(STORE, mode);
     const store = tx.objectStore(STORE);
     const req = fn(store);
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
+    tx.oncomplete = () => { db.close(); resolve(req.result); };
+    tx.onabort = () => { db.close(); reject(tx.error || new Error("Storage transaction aborted")); };
+    tx.onerror = () => { db.close(); reject(tx.error || req.error); };
   });
 }
 
@@ -47,10 +48,16 @@ export async function listSaves() {
       req.onsuccess = () => resolve(req.result);
       req.onerror = () => reject(req.error);
     });
+    db.close();
     const out = [];
     for (const k of keys) {
       const v = await idbOp("readonly", (s) => s.get(k));
       if (v) out.push({ slot: String(k), ...v, data: undefined });
+    }
+    for (const [slot, rec] of Object.entries(memory())) {
+      const i = out.findIndex((v) => v.slot === slot);
+      if (i < 0) out.push({ slot, ...rec, data: undefined });
+      else if ((rec.updated || 0) > (out[i].updated || 0)) out[i] = { slot, ...rec, data: undefined };
     }
     return out.sort((a, b) => String(a.slot).localeCompare(String(b.slot)));
   } catch {
@@ -60,21 +67,23 @@ export async function listSaves() {
 }
 
 export async function readSave(slot) {
-  try {
-    const v = await idbOp("readonly", (s) => s.get(String(slot)));
-    if (v) return v;
-  } catch { /* fallback */ }
-  return memory()[String(slot)] || null;
+  let primary = null;
+  try { primary = await idbOp("readonly", (s) => s.get(String(slot))); } catch { /* fallback */ }
+  const backup = memory()[String(slot)] || null;
+  return (backup && (!primary || backup.updated > primary.updated)) ? backup : primary;
 }
 
 export async function writeSave(slot, meta) {
   const rec = { ...meta, updated: Date.now() };
+  let stored = false;
   try {
     await idbOp("readwrite", (s) => s.put(rec, String(slot)));
-  } catch { /* ignore */ }
+    stored = true;
+  } catch { /* try backup */ }
   const all = memory();
   all[String(slot)] = rec;
-  try { memoryWrite(all); } catch { /* quota */ }
+  try { memoryWrite(all); stored = true; } catch { /* quota */ }
+  if (!stored) throw new Error("Не удалось сохранить игру. Освободите место на устройстве.");
 }
 
 export async function deleteSave(slot) {
