@@ -1287,6 +1287,13 @@ function makeOffer(state, hero) {
   if (b === a) b = learnable.find((id) => id !== a) || a;
   return { kind: "skill", options: b === a ? [a] : [a, b] };
 }
+export function ensureOffer(state, heroId) {
+  const hero = heroById(state, heroId);
+  if (!hero) return null;
+  if (hero.unspent > 0 && !hero.offer) hero.offer = makeOffer(state, hero);
+  return hero;
+}
+
 export function chooseLevel(state, heroId, choiceId) {
   const hero = heroById(state, heroId);
   if (!hero || !hero.unspent) return { ok: false };

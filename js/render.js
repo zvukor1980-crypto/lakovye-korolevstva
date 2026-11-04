@@ -215,11 +215,141 @@ export function clampCamera(cam, state, viewW, viewH) {
   else cam.y = Math.min(maxY - halfH, Math.max(minY + halfH, cam.y));
 }
 
+const PAINT = {
+  [T_GRASS]: "art/tiles/paint-grass.jpg",
+  [T_FOREST]: "art/tiles/paint-grass.jpg",
+  [T_HILL]: "art/tiles/paint-grass.jpg",
+  [T_DIRT]: "art/tiles/paint-dirt.jpg",
+  [T_SAND]: "art/tiles/paint-sand.jpg",
+  [T_SNOW]: "art/tiles/paint-snow.jpg",
+  [T_SWAMP]: "art/tiles/paint-grass.jpg",
+  [T_WATER]: "art/tiles/paint-water.jpg",
+  [T_MOUNTAIN]: "art/tiles/paint-rock.jpg",
+  [T_LAVA]: "art/tiles/paint-dirt.jpg",
+};
+let terrainBake = null;
+
+function stampWrap(g, img, dx, dy, size, ox, oy) {
+  const tw = img.naturalWidth || img.width;
+  const th = img.naturalHeight || img.height;
+  if (!tw || !th) return;
+  const sx0 = ((ox % tw) + tw) % tw;
+  const sy0 = ((oy % th) + th) % th;
+  const w1 = Math.min(size, tw - sx0);
+  const h1 = Math.min(size, th - sy0);
+  g.drawImage(img, sx0, sy0, w1, h1, dx, dy, w1, h1);
+  if (w1 < size) g.drawImage(img, 0, sy0, size - w1, h1, dx + w1, dy, size - w1, h1);
+  if (h1 < size) g.drawImage(img, sx0, 0, w1, size - h1, dx, dy + h1, w1, size - h1);
+  if (w1 < size && h1 < size) g.drawImage(img, 0, 0, size - w1, size - h1, dx + w1, dy + h1, size - w1, size - h1);
+}
+
+function ensureTerrain(state) {
+  const S = 48;
+  for (const src of new Set(Object.values(PAINT))) primeArt(src);
+  primeArt("art/sprites/pine.webp");
+  primeArt("art/sprites/windmill.webp");
+  const ready = painted(PAINT[T_GRASS]) ? 1 : 0;
+  const key = `${state.scenarioId}|${state.map.w}x${state.map.h}|${state.rngState}|${ready}`;
+  if (terrainBake && terrainBake.key === key) return terrainBake;
+  const mw = state.map.w, mh = state.map.h;
+  const canvas = document.createElement("canvas");
+  canvas.width = mw * S;
+  canvas.height = mh * S;
+  const g = canvas.getContext("2d");
+  g.imageSmoothingEnabled = true;
+  const grassImg = painted(PAINT[T_GRASS]);
+  if (grassImg) {
+    const pat = g.createPattern(grassImg, "repeat");
+    if (pat) { g.fillStyle = pat; g.fillRect(0, 0, canvas.width, canvas.height); }
+  }
+  for (let y = 0; y < mh; y++) {
+    for (let x = 0; x < mw; x++) {
+      const i = y * mw + x;
+      const type = state.map.terrain[i];
+      const flags = state.map.flags[i];
+      const road = (flags & FLAG_ROAD) && type !== T_WATER && type !== T_MOUNTAIN && type !== T_LAVA;
+      const use = road ? T_DIRT : type;
+      if (use !== T_GRASS && use !== T_FOREST && use !== T_HILL && use !== T_SWAMP) {
+        const img = painted(PAINT[use] || PAINT[T_GRASS]);
+        if (img) stampWrap(g, img, x * S, y * S, S + 1, x * S, y * S);
+        else { g.fillStyle = type === T_WATER ? "#2a6ea8" : "#b08958"; g.fillRect(x * S, y * S, S + 1, S + 1); }
+      }
+      if (flags & FLAG_RIVER) {
+        g.fillStyle = flags & FLAG_FORD ? "rgba(196,228,244,.8)" : "rgba(36,112,176,.92)";
+        g.fillRect(x * S + 16, y * S, 16, S);
+      }
+    }
+  }
+  terrainBake = { key, canvas, S };
+  return terrainBake;
+}
+
+let shroudA = null;
+let shroudB = null;
+function drawShroud(ctx, cells, state, playerId, S, dpr, kx, ky, ox, oy, w, h, base) {
+  const W = Math.max(1, Math.round(w * dpr));
+  const H = Math.max(1, Math.round(h * dpr));
+  if (!shroudA) {
+    shroudA = document.createElement("canvas");
+    shroudB = document.createElement("canvas");
+  }
+  if (shroudA.width !== W || shroudA.height !== H) {
+    shroudA.width = shroudB.width = W;
+    shroudA.height = shroudB.height = H;
+  }
+  const g = shroudA.getContext("2d");
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  g.clearRect(0, 0, W, H);
+  g.setTransform(dpr * kx, dpr * ky, -dpr * kx, dpr * ky, dpr * ox, dpr * oy);
+  g.fillStyle = "rgba(8,20,10,0.94)";
+  for (const [x, y] of cells) {
+    if (!remembered(state, playerId, x, y)) g.fillRect(x * S, y * S, S, S);
+  }
+  const b = shroudB.getContext("2d");
+  b.setTransform(1, 0, 0, 1, 0, 0);
+  b.clearRect(0, 0, W, H);
+  b.filter = "blur(12px)";
+  b.drawImage(shroudA, 0, 0);
+  b.filter = "none";
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.drawImage(shroudB, 0, 0);
+  ctx.setTransform(base);
+}
+
+function drawPine(ctx, sx, sy, zoom, seed) {
+  const img = painted("art/sprites/pine.webp");
+  const h = (34 + (Math.abs(seed) % 14)) * zoom;
+  if (img) {
+    drawFigure(ctx, img, sx, sy + 4 * zoom, h, 0, { seed, bob: 0, sway: 0.02 });
+    return;
+  }
+  ctx.save();
+  ctx.translate(sx, sy);
+  ctx.fillStyle = "#1e4e28";
+  ctx.beginPath();
+  ctx.moveTo(0, -h); ctx.lineTo(h * 0.38, 0); ctx.lineTo(-h * 0.38, 0); ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
 export function drawMap(ctx, state, view) {
   const { cam, w, h, time, playerId, path, selectedId } = view;
+  const base = ctx.getTransform();
+  const dpr = base.a || 1;
   ctx.clearRect(0, 0, w, h);
-  ctx.fillStyle = "#2f6d28";
+  ctx.fillStyle = "#3f7a34";
   ctx.fillRect(0, 0, w, h);
+  const bake = ensureTerrain(state);
+  const S = bake.S;
+  const kx = (TW / 2) / S * cam.zoom;
+  const ky = (TH / 2) / S * cam.zoom;
+  const ox = w / 2 - cam.x * cam.zoom;
+  const oy = h / 2 - cam.y * cam.zoom - (TH / 2) * cam.zoom;
+  const paintIso = () => ctx.setTransform(dpr * kx, dpr * ky, -dpr * kx, dpr * ky, dpr * ox, dpr * oy);
+  paintIso();
+  ctx.imageSmoothingEnabled = true;
+  ctx.drawImage(bake.canvas, 0, 0);
+  ctx.setTransform(base);
 
   const margin = 3;
   const corners = [
@@ -240,29 +370,24 @@ export function drawMap(ctx, state, view) {
   cells.sort((a, b) => (a[0] + a[1]) - (b[0] + b[1]) || a[0] - b[0]);
 
   const pathSteps = Array.isArray(path) ? path : (path && path.full) || [];
+  drawShroud(ctx, cells, state, playerId, S, dpr, kx, ky, ox, oy, w, h, base);
+
   for (const [x, y] of cells) {
+    if (!remembered(state, playerId, x, y)) continue;
     const i = y * state.map.w + x;
-    const seen = remembered(state, playerId, x, y);
+    const type = state.map.terrain[i];
     const c = tileCenter(x, y);
     const s = toScreen(c.x, c.y, cam, w, h);
-    const dw = TW * cam.zoom, dh = TH * cam.zoom;
-    ctx.save();
-    ctx.translate(s.x, s.y);
-    if (!seen) {
-      paintIso(ctx, T_GRASS, dw, dh, x, y);
-      ctx.globalAlpha = 0.72;
-      drawDiamond(ctx, 0, 0, dw + 2, dh + 2, "#10210f");
-      ctx.restore();
-      continue;
+    const hsh = Math.imul(x, 73856093) ^ Math.imul(y, 19349663);
+    if (type === T_FOREST || type === T_HILL) {
+      const ox = ((hsh & 15) - 7) * cam.zoom;
+      drawPine(ctx, s.x + ox, s.y, cam.zoom, hsh);
+      if ((hsh & 1) === 0) drawPine(ctx, s.x - ox * 0.6, s.y + 3 * cam.zoom, cam.zoom * 0.86, hsh >> 3);
+    } else if (type === T_MOUNTAIN) {
+      drawPeak(ctx, s.x, s.y, cam.zoom, time, x);
+    } else if (type === T_GRASS && (hsh & 7) === 0) {
+      drawPine(ctx, s.x + ((hsh >> 4) & 7) - 3, s.y, cam.zoom * 0.7, hsh);
     }
-    const type = state.map.terrain[i];
-    paintIso(ctx, type, dw, dh, x, y);
-    const flags = state.map.flags[i];
-    if (flags & FLAG_ROAD && type !== T_WATER && type !== T_MOUNTAIN) paintRoad(ctx, dw, dh);
-    if (flags & FLAG_RIVER) drawRiver(ctx, dw, dh, time, flags & FLAG_FORD);
-    ctx.restore();
-    if (type === T_FOREST || type === T_HILL) drawForestSprite(ctx, s.x, s.y, cam.zoom, time, x, y, type);
-    if (type === T_MOUNTAIN) drawPeak(ctx, s.x, s.y, cam.zoom, time, x);
   }
   drawRoute(ctx, pathSteps, view);
 
@@ -633,6 +758,11 @@ function drawObject(ctx, state, obj, cam, w, h) {
     primeArt(SPR.tavern);
     const img = painted(SPR.tavern);
     if (img) drawFigure(ctx, img, 0, 8 * z, 36 * z, performance.now(), { seed: obj.id, bob: 0.3, sway: 0.01 });
+  } else if (obj.type === "mill") {
+    primeArt("art/sprites/windmill.webp");
+    const img = painted("art/sprites/windmill.webp");
+    if (img) drawFigure(ctx, img, 0, 10 * z, 48 * z, performance.now(), { seed: obj.id, bob: 0, sway: 0 });
+    else drawToken(ctx, null, 0, 0, 14 * z, "#c4a060", "❀");
   } else {
     ctx.fillStyle = "rgba(20,8,12,.8)";
     ctx.beginPath(); ctx.arc(0, 0, 11 * z, 0, Math.PI * 2); ctx.fill();

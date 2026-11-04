@@ -2,7 +2,7 @@ import { CREATURES, GAME_VERSION, SKIRMISH, calendar } from "./data.js";
 import { scenarioById } from "./engine.js";
 import {
   aiAct, beginTurn, buildStructure, buyMachine, buySpellbook, castAdventure, chooseLevel,
-  concludeBattle, createGame, endTurn, engage, equipArtifact, findPath, heroAt, heroById,
+  concludeBattle, createGame, endTurn, engage, ensureOffer, equipArtifact, findPath, heroAt, heroById,
   hireHero, learnTownSpell, makeSkirmish, maxMove, objectAt, recruit, recruitDwelling,
   resolveChoice, acceptDiplomacy, shopApply, splitArmy, stepHero, townAt, townById, trade,
   transferArmy, unequipArtifact, upgradeCreatures, moveArmy, deserialize, serialize,
@@ -139,6 +139,7 @@ function selectedHero() {
 
 function paintChrome() {
   if (!S.game || !document.getElementById("topbar")) return;
+  try {
   document.getElementById("topbar").innerHTML = ui.topHTML(S.game);
   document.getElementById("dock").innerHTML = ui.dockHTML(S.game, selectedHero(), S.mode, { grid: S.grid !== false });
   const mm = document.getElementById("minimap");
@@ -150,6 +151,11 @@ function paintChrome() {
     if (btn) btn.classList.add("on");
   }
   bindRanges();
+  } catch (err) {
+    console.error(err);
+    const modal = document.getElementById("modal");
+    if (modal) modal.innerHTML = `<div class="modal-back"><div class="sheet"><header class="sheeth"><h2>Окно</h2><button class="btn small ghost" data-act="close-modal">Закрыть</button></header><div class="body"><p>Окно не открылось. Закройте и попробуйте снова.</p></div></div></div>`;
+  }
 }
 
 function bindRanges() {
@@ -184,7 +190,7 @@ function modalHTML(m) {
   if (m.type === "shop") return `<div class="modal-back"><div class="sheet" style="max-height:100%"><div class="body scroll">${ui.shopHTML(S.game)}</div></div></div>`;
   if (m.type === "save") return `<div class="modal-back"><div class="sheet"><div class="body scroll">${ui.saveHTML(S.slots)}</div></div></div>`;
   if (m.type === "load") return `<div class="modal-back"><div class="sheet"><div class="body scroll">${ui.loadHTML(S.slots)}</div></div></div>`;
-  if (m.type === "level") return ui.levelHTML(heroById(S.game, m.id));
+  if (m.type === "level") return ui.levelHTML(ensureOffer(S.game, m.id));
   if (m.type === "choice") return ui.choiceHTML(m.choice);
   if (m.type === "diplo") return ui.diploHTML(m.data);
   if (m.type === "dwell") return ui.dwellingHTML(S.game, heroById(S.game, m.heroId), m.obj);
@@ -1155,8 +1161,11 @@ document.body.addEventListener("click", (e) => {
 });
 
 document.body.addEventListener("pointerdown", () => {
-  if (S.audio && S.audio.state === "suspended") S.audio.resume();
-  ensureMusic(S.settings.sound !== false);
+  try {
+    if (S.audio && S.audio.state === "suspended") S.audio.resume().catch(() => {});
+  } catch { /* нет устройства */ }
+  if (S.settings.sound === false) return;
+  ensureMusic(true);
 }, { once: false });
 
 function registerSW() {
