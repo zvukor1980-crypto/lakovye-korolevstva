@@ -567,8 +567,9 @@ export function battleSpellsHTML(game) {
 }
 
 export function levelHTML(hero) {
+  if (!hero) return `<div class="modal-back"><div class="sheet"><header class="sheeth"><h2>Уровень</h2></header><div class="body"><button class="btn" data-act="close-modal">Дальше</button></div></div></div>`;
   const offer = hero.offer;
-  if (!offer) return "";
+  if (!offer) return `<div class="modal-back"><div class="sheet"><header class="sheeth"><h2>Уровень</h2></header><div class="body"><button class="btn" data-act="close-modal">Дальше</button></div></div></div>`;
   if (offer.kind === "stat") {
     const btns = ["attack", "defense", "power", "knowledge"].map((id) => {
       const nm = { attack: "Атака", defense: "Защита", power: "Сила магии", knowledge: "Знание" }[id];
@@ -707,6 +708,9 @@ export function tradeHTML(game) {
 
 export function overviewHTML(game) {
   const p = game.players.find((pl) => pl.control === "human");
+  if (!p) {
+    return `<div class="modal-back"><div class="sheet"><header class="sheeth"><h2>Королевство</h2><button class="btn small ghost" data-act="close-modal">Закрыть</button></header><div class="body"><p>Двор ещё не выбран.</p></div></div></div>`;
+  }
   const heroes = game.heroes.filter((h) => h.player === p.id && !h.lost).map((h) =>
     `<button class="btn small" data-act="focus-hero" data-id="${h.id}">${esc(h.name)} · ур.${h.level} · ход ${h.movement}</button>`).join("");
   const towns = game.towns.filter((t) => t.owner === p.id).map((t) =>

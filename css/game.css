@@ -244,19 +244,7 @@ h1, h2, h3 { font-family: "Cormorant LK", Georgia, serif; font-weight: 700; marg
 .btn[data-act="to-menu"]::before { content: "↩"; }
 .btn[data-act="town-hit"]::before,
 .btn.bld-row::before { content: "⌂"; }
-.btn::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(105deg, transparent 38%, rgba(255,236,190,.22) 50%, transparent 62%);
-  transform: translateX(-130%);
-  animation: sheen 4.2s ease-in-out infinite;
-  pointer-events: none;
-}
-@keyframes sheen {
-  0%, 55% { transform: translateX(-130%); }
-  100% { transform: translateX(130%); }
-}
+.btn::after { content: none; }
 .btn:active { transform: translateY(2px) scale(0.98); filter: brightness(1.14); }
 .voice {
   display: flex; gap: 10px; align-items: center;

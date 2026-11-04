@@ -1,4 +1,4 @@
-const VERSION = "lk-1.7.0";
+const VERSION = "lk-1.8.0";
 const PRECACHE = [
   "./",
   "./art/battle/meadow.jpg",
@@ -82,6 +82,14 @@ const PRECACHE = [
   "./art/sprites/shrine.webp",
   "./art/sprites/tavern.webp",
   "./art/sprites/tree.webp",
+  "./art/sprites/pine.webp",
+  "./art/sprites/windmill.webp",
+  "./art/tiles/paint-grass.jpg",
+  "./art/tiles/paint-dirt.jpg",
+  "./art/tiles/paint-water.jpg",
+  "./art/tiles/paint-rock.jpg",
+  "./art/tiles/paint-snow.jpg",
+  "./art/tiles/paint-sand.jpg",
   "./art/tiles/atlas-dirt.jpg",
   "./art/tiles/atlas-grass.jpg",
   "./art/tiles/atlas-snow.jpg",
