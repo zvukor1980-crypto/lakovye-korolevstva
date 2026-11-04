@@ -56,8 +56,8 @@ export const SPR = {
     onyx: "art/sprites/castle-onyx.webp",
   },
   battle: {
-    grass: "art/battle/sun.jpg",
-    forest: "art/battle/sun.jpg",
+    grass: "art/world/battle-valley.webp",
+    forest: "art/world/battle-valley.webp",
     sand: "art/battle/sun.jpg",
     snow: "art/battle/snow.jpg",
     swamp: "art/battle/sun.jpg",

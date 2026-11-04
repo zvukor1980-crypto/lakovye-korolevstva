@@ -1,0 +1,18 @@
+import assert from 'node:assert/strict';
+const events={};let oscillators=[],spoken=[],intervals=new Set();
+globalThis.document={hidden:false,addEventListener:(n,f)=>events[n]=f};
+globalThis.setInterval=f=>{intervals.add(f);return f;};globalThis.clearInterval=f=>intervals.delete(f);
+const param=()=>({value:0,setValueAtTime(){},exponentialRampToValueAtTime(){},setTargetAtTime(){}});
+class AC {state='running';currentTime=0;destination={};createGain(){return {gain:param(),connect(){},disconnect(){}};}createOscillator(){const o={frequency:param(),detune:param(),connect(){},disconnect(){},start(){},stop(){this.stopped=true;}};oscillators.push(o);return o;}suspend(){this.state='suspended';return Promise.resolve();}resume(){this.state='running';return Promise.resolve();}}
+globalThis.window={AudioContext:AC,speechSynthesis:{getVoices:()=>[{lang:'ru-RU'}],cancel(){},speak:u=>spoken.push(u)}};
+globalThis.SpeechSynthesisUtterance=class{constructor(text){this.text=text;}};
+const m=await import('../js/music.js');
+m.ensureMusic(true,.4);assert.equal(intervals.size,1);assert.ok(oscillators.length>0);
+m.ensureMusic(true,.3);assert.equal(intervals.size,1,'Repeated taps must not duplicate schedulers');
+document.hidden=true;events.visibilitychange();assert.equal(intervals.size,0);
+document.hidden=false;events.visibilitychange();await Promise.resolve();assert.equal(intervals.size,1);
+m.stopMusic();assert.equal(intervals.size,0);assert.ok(oscillators.every(o=>o.stopped));
+m.configureVoice(false);m.speak('Нет',true);assert.equal(spoken.length,0);
+m.configureVoice(true);m.speak('Поход начинается',true);assert.equal(spoken.length,1);assert.equal(spoken[0].lang,'ru-RU');
+window.speechSynthesis.getVoices=()=>[];m.speak('Без голоса',true);assert.equal(spoken.length,1);
+console.log('PASS: audio scheduler, mute, visibility pause/resume, opt-in Russian speech and missing-voice fallback');

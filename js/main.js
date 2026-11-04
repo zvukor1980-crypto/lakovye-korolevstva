@@ -17,7 +17,7 @@ import {
 } from "./render.js";
 import * as ui from "./ui.js";
 import * as saves from "./save.js";
-import { ensureMusic } from "./music.js";
+import { ensureMusic, configureVoice, speak, setMusicScene } from "./music.js";
 
 const app = document.getElementById("app");
 const S = {
@@ -96,6 +96,7 @@ async function boot() {
 }
 
 function renderScreen() {
+  document.body.classList.toggle("quiet-world",S.settings.effects===false);
   if (S.screen === "game" && S.game) {
     ensureShell();
     paintChrome();
@@ -220,6 +221,7 @@ function modalHTML(m) {
 }
 
 function frame(t) {
+  setMusicScene(S.game?.battle ? "battle" : "map");
   const cv = document.getElementById("cv");
   try {
   if (cv && S.game && S.screen === "game") {
@@ -232,7 +234,7 @@ function frame(t) {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     const heroNow = selectedHero();
     const view = {
-      cam: S.cam, w: rect.width, h: rect.height, time: t, playerId: human().id,
+      cam: S.cam, w: rect.width, h: rect.height, time: S.settings.effects === false ? 0 : t, effects: S.settings.effects !== false, playerId: human().id,
       path: S.path, selectedId: S.selected, floaters: S.floaters, particles: S.particles,
       moveLeft: heroNow && heroNow.movement, moveMax: heroNow && maxMove(heroNow),
       grid: S.grid !== false,
@@ -699,6 +701,7 @@ function startGame(spec) {
   if (h) focus(h);
   renderScreen();
   beep(392, 0.08);
+  speak("Наше королевство ждёт. Начнём поход.");
 }
 
 async function autosave() {
@@ -713,7 +716,7 @@ async function onAct(actName, el) {
   const g = S.game;
   try {
     if (actName === "research-era") {
-      const result=researchEra(g,el.dataset.town);toast(result.message||result.error);
+      const result=researchEra(g,el.dataset.town);toast(result.message||result.error);if(result.ok)speak("Начинается новая эпоха нашего королевства.");
       S.modal={type:"hall",town:el.dataset.town};paintChrome();await autosave();return;
     }
     if (actName === "shop-card-build") {
@@ -774,8 +777,20 @@ async function onAct(actName, el) {
       }));
       return;
     }
+    if (actName === "test-voice") {
+      const voices=window.speechSynthesis?.getVoices()||[];
+      if(!voices.some(v=>/^ru/i.test(v.lang))){toast("Русский системный голос пока недоступен на устройстве.");return;}
+      configureVoice(true);speak("Добро пожаловать в Лаковые королевства. Ваш поход начинается.",true);return;
+    }
     if (actName === "save-settings") {
       S.settings.sound = document.getElementById("set-sound").value !== "off";
+      S.settings.music=document.getElementById("set-music").value!=="off";
+      S.settings.volume=Number(document.getElementById("set-volume").value)/100;
+      S.settings.voice=document.getElementById("set-voice").value==="on";
+      S.settings.effects=document.getElementById("set-effects").value!=="off";
+      ensureMusic(S.settings.sound!==false&&S.settings.music!==false,S.settings.volume);
+      configureVoice(S.settings.sound!==false&&S.settings.voice);
+      document.body.classList.toggle("quiet-world",!S.settings.effects);
       S.settings.fast = document.getElementById("set-fast").value === "1";
       localStorage.setItem("lk-settings", JSON.stringify(S.settings));
       toast("Настройки записаны.");
@@ -1187,7 +1202,8 @@ document.body.addEventListener("pointerdown", () => {
     if (S.audio && S.audio.state === "suspended") S.audio.resume().catch(() => {});
   } catch { /* нет устройства */ }
   if (S.settings.sound === false) return;
-  ensureMusic(true);
+  ensureMusic(S.settings.music!==false,S.settings.volume??.4);
+  configureVoice(S.settings.voice);
 }, { once: false });
 
 function registerSW() {

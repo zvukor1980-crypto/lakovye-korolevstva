@@ -1,59 +1,61 @@
-/** Тихий сказочный луп: арфа в дорийском ладу и мягкая педаль. */
-
-let ctx;
-let timer;
-let playing = false;
-
-const SCALE = [0, 2, 3, 5, 7, 9, 10, 12];
-
-function tone(ac, freq, t, dur, type, gain) {
-  if (!ac || ac.state === "closed") return;
-  const o = ac.createOscillator();
-  const g = ac.createGain();
-  const f = ac.createBiquadFilter();
-  f.type = "lowpass";
-  f.frequency.value = 1800;
-  o.type = type;
-  o.frequency.value = freq;
-  g.gain.setValueAtTime(0.0001, t);
-  g.gain.exponentialRampToValueAtTime(gain, t + 0.03);
-  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-  o.connect(f); f.connect(g); g.connect(ac.destination);
-  o.start(t); o.stop(t + dur + 0.05);
+/** Original procedural chamber score. Synthesized instruments, not live recordings. */
+let ctx, master, timer, enabled=false, level=.4, scene='map', step=0, next=0;
+const active=new Set();
+const chords=[[50,57,62,65],[46,53,58,62],[48,55,60,64],[45,52,57,61]];
+const melody=[74,0,77,76,74,69,72,0,70,0,74,72,70,65,69,0,72,0,76,74,72,67,69,0,73,0,76,74,73,69,67,0];
+const hz=n=>440*2**((n-69)/12);
+function note(n,t,d,v,kind='harp') {
+ const g=ctx.createGain();g.connect(master);
+ g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(v,t+(kind==='strings'?.25:.025));g.gain.exponentialRampToValueAtTime(.0001,t+d);
+ const partials=kind==='harp'?[[1,1],[2,.28],[3,.1]]:kind==='strings'?[[1,.65],[2,.2],[3,.09]]:[[1,1],[2,.06]];
+ let remaining=partials.length;
+ for(const [ratio,amp] of partials){
+  const o=ctx.createOscillator(),a=ctx.createGain();o.type='sine';o.frequency.value=hz(n)*ratio;
+  if(kind==='strings')o.detune.value=ratio===1?-4:4;
+  a.gain.value=amp;o.connect(a);a.connect(g);active.add(o);
+  o.onended=()=>{active.delete(o);o.disconnect();a.disconnect();if(!--remaining)g.disconnect();};o.start(t);o.stop(t+d+.05);
+ }
 }
-
-function midi(n) { return 440 * Math.pow(2, (n - 69) / 12); }
-
-export function ensureMusic(enabled) {
-  if (!enabled) { stopMusic(); return; }
-  if (playing) return;
-  const AC = window.AudioContext || window.webkitAudioContext;
-  if (!AC) return;
-  try {
-    ctx = ctx || new AC();
-    if (ctx.state === "suspended") ctx.resume().catch(() => { playing = false; });
-  } catch { return; }
-  playing = true;
-  const root = 62;
-  let step = 0;
-  const tick = () => {
-    if (!playing || !ctx) return;
-    try {
-    const t = ctx.currentTime + 0.02;
-    const degree = SCALE[step % SCALE.length];
-    const oct = step % 16 < 8 ? 0 : 12;
-    tone(ctx, midi(root + degree + oct), t, 0.42, "triangle", 0.018);
-    if (step % 4 === 0) tone(ctx, midi(root - 12 + (step % 8 === 0 ? 0 : 7)), t, 1.3, "sine", 0.02);
-    if (step % 8 === 4) tone(ctx, midi(root + 12 + degree), t, 0.7, "sine", 0.01);
-    step++;
-    } catch { stopMusic(); }
-  };
-  tick();
-  timer = setInterval(tick, 420);
+function schedule(){
+ if(!enabled||!ctx||ctx.state!=='running')return;
+ const beat=scene==='battle'?.29:.43;
+ while(next<ctx.currentTime+.18){
+  const chord=chords[Math.floor(step/8)%4],i=step%8;
+  note(chord[[0,1,2,3,2,1,3,1][i]]+12,next,1.1,.045,'harp');
+  if(i===0){note(chord[0]-12,next,beat*7,.045,'strings');note(chord[2],next,beat*7,.018,'strings');}
+  const m=melody[step%32];if(m&&step%2===0)note(m,next,beat*1.8,.035,'flute');
+  if(scene==='battle'&&i%2===0)note(chord[0]-12,next,.13,.065);
+  step++;next+=beat;
+ }
 }
-
-export function stopMusic() {
-  playing = false;
-  if (timer) clearInterval(timer);
-  timer = null;
+export function setMusicScene(value){scene=value;}
+export function ensureMusic(on,volume=.4){
+ enabled=!!on;level=Math.max(0,Math.min(1,Number(volume)||0));
+ if(!enabled){stopMusic();return;}
+ if(document.hidden)return;
+ try{
+  const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
+  if(!ctx){ctx=new AC();master=ctx.createGain();master.connect(ctx.destination);}
+  master.gain.setTargetAtTime(level,ctx.currentTime,.1);
+  const start=()=>{if(!enabled||document.hidden)return;if(!timer){next=ctx.currentTime+.04;timer=setInterval(schedule,100);schedule();}};
+  if(ctx.state==='suspended')ctx.resume().then(start).catch(()=>{});else start();
+ }catch{/* Audio is optional. */}
 }
+export function stopMusic(){
+ enabled=false;clearInterval(timer);timer=null;
+ for(const o of active){try{o.stop();}catch{}}active.clear();
+ if(ctx&&master)master.gain.setValueAtTime(0,ctx.currentTime);
+}
+let voiceOn=false,lastSpoken=0;
+export function configureVoice(on){voiceOn=!!on;if(!voiceOn&&window.speechSynthesis)window.speechSynthesis.cancel();}
+export function speak(line,force=false){
+ if(!voiceOn||document.hidden||!window.speechSynthesis||(!force&&Date.now()-lastSpoken<6000))return;
+ const voice=window.speechSynthesis.getVoices().find(v=>/^ru/i.test(v.lang));
+ if(!voice)return;
+ window.speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(line);u.lang='ru-RU';u.voice=voice;u.rate=.94;u.volume=.8;
+ lastSpoken=Date.now();window.speechSynthesis.speak(u);
+}
+document.addEventListener('visibilitychange',()=>{
+ if(document.hidden){clearInterval(timer);timer=null;if(ctx)ctx.suspend().catch(()=>{});if(window.speechSynthesis)window.speechSynthesis.cancel();}
+ else if(enabled)ensureMusic(true,level);
+});

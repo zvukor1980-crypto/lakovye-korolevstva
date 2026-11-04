@@ -32,8 +32,8 @@ const GEMS = {
 
 export function menuHTML(opts) {
   return `<div class="screen menu-lux">
-    <div class="menu-crest">
-      <h1>Лаковые<br>королевства</h1>
+    <div class="menu-mist" aria-hidden="true"></div><div class="menu-crest"><span class="kicker">Четыре народа · Три эпохи</span>
+      <h1>Лаковые<br>королевства</h1><p class="menu-caption">Путь начинается на рассвете</p>
     </div>
     <div class="menu-actions lux">
       ${opts.continue ? `<button class="btn lux" data-act="continue">Продолжить</button>` : ""}
@@ -131,6 +131,12 @@ export function bestiaryHTML() {
 export function settingsHTML(st) {
   return sheet("Настройки", `
     <label class="field">Звук<select id="set-sound"><option value="on" ${st.sound !== false ? "selected" : ""}>Включён</option><option value="off" ${st.sound === false ? "selected" : ""}>Выключен</option></select></label>
+    <label class="field">Музыка<select id="set-music"><option value="on" ${st.music !== false ? "selected" : ""}>Камерная тема</option><option value="off" ${st.music === false ? "selected" : ""}>Выключена</option></select></label>
+    <label class="field">Громкость музыки<input id="set-volume" type="range" min="0" max="100" value="${Math.round((st.volume ?? .4)*100)}"></label>
+    <label class="field">Голосовые реплики<select id="set-voice"><option value="off" ${!st.voice ? "selected" : ""}>Выключены</option><option value="on" ${st.voice ? "selected" : ""}>Русский голос устройства</option></select></label>
+    <p class="muted">Музыка синтезирована: арфа, флейта и струнные тембры. Реплики доступны при наличии русского системного голоса.</p>
+    <button class="btn ghost" data-act="test-voice">Послушать голос</button>
+    <label class="field">Атмосферные эффекты<select id="set-effects"><option value="on" ${st.effects !== false ? "selected" : ""}>Включены</option><option value="off" ${st.effects === false ? "selected" : ""}>Экономия энергии</option></select></label>
     <label class="field">Анимация<select id="set-fast"><option value="0" ${!st.fast ? "selected" : ""}>Плавная</option><option value="1" ${st.fast ? "selected" : ""}>Быстрая</option></select></label>
     <button class="btn" data-act="save-settings">Запомнить</button>
     <button class="btn ghost" data-act="back">Назад</button>`);

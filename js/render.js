@@ -216,16 +216,16 @@ export function clampCamera(cam, state, viewW, viewH) {
 }
 
 const PAINT = {
-  [T_GRASS]: "art/tiles/paint-grass.jpg",
-  [T_FOREST]: "art/tiles/paint-grass.jpg",
-  [T_HILL]: "art/tiles/paint-grass.jpg",
-  [T_DIRT]: "art/tiles/paint-dirt.jpg",
-  [T_SAND]: "art/tiles/paint-sand.jpg",
-  [T_SNOW]: "art/tiles/paint-snow.jpg",
-  [T_SWAMP]: "art/tiles/paint-grass.jpg",
-  [T_WATER]: "art/tiles/paint-water.jpg",
-  [T_MOUNTAIN]: "art/tiles/paint-rock.jpg",
-  [T_LAVA]: "art/tiles/paint-dirt.jpg",
+  [T_GRASS]: "art/world/grass.webp",
+  [T_FOREST]: "art/world/grass.webp",
+  [T_HILL]: "art/world/grass.webp",
+  [T_DIRT]: "art/world/dirt.webp",
+  [T_SAND]: "art/world/sand.webp",
+  [T_SNOW]: "art/world/snow.webp",
+  [T_SWAMP]: "art/world/grass.webp",
+  [T_WATER]: "art/world/water.webp",
+  [T_MOUNTAIN]: "art/world/rock.webp",
+  [T_LAVA]: "art/world/dirt.webp",
 };
 let terrainBake = null;
 
@@ -248,15 +248,16 @@ function ensureTerrain(state) {
   for (const src of new Set(Object.values(PAINT))) primeArt(src);
   primeArt("art/sprites/pine.webp");
   primeArt("art/sprites/windmill.webp");
-  const ready = painted(PAINT[T_GRASS]) ? 1 : 0;
-  const key = `${state.scenarioId}|${state.map.w}x${state.map.h}|${state.rngState}|${ready}`;
-  if (terrainBake && terrainBake.key === key) return terrainBake;
+  const ready = [...new Set(Object.values(PAINT))].map(src=>painted(src)?1:0).join("");
+  const key = `${state.scenarioId}|${state.map.w}x${state.map.h}|${ready}`;
+  if (terrainBake && terrainBake.map === state.map && terrainBake.key === key) return terrainBake;
   const mw = state.map.w, mh = state.map.h;
   const canvas = document.createElement("canvas");
   canvas.width = mw * S;
   canvas.height = mh * S;
   const g = canvas.getContext("2d");
   g.imageSmoothingEnabled = true;
+  g.fillStyle="#477044";g.fillRect(0,0,canvas.width,canvas.height);
   const grassImg = painted(PAINT[T_GRASS]);
   if (grassImg) {
     const pat = g.createPattern(grassImg, "repeat");
@@ -280,7 +281,7 @@ function ensureTerrain(state) {
       }
     }
   }
-  terrainBake = { key, canvas, S };
+  terrainBake = { key, canvas, S, map:state.map };
   return terrainBake;
 }
 
@@ -337,7 +338,7 @@ export function drawMap(ctx, state, view) {
   const base = ctx.getTransform();
   const dpr = base.a || 1;
   ctx.clearRect(0, 0, w, h);
-  ctx.fillStyle = "#3f7a34";
+  ctx.fillStyle = "#122d30";
   ctx.fillRect(0, 0, w, h);
   const bake = ensureTerrain(state);
   const S = bake.S;
@@ -379,6 +380,11 @@ export function drawMap(ctx, state, view) {
     const c = tileCenter(x, y);
     const s = toScreen(c.x, c.y, cam, w, h);
     const hsh = Math.imul(x, 73856093) ^ Math.imul(y, 19349663);
+    if(type===T_WATER && view.effects!==false){
+      ctx.save();ctx.strokeStyle="rgba(205,249,237,.25)";ctx.lineWidth=1;
+      const phase=Math.sin(time*.0015+x+y)*3;
+      ctx.beginPath();ctx.ellipse(s.x,s.y,9*cam.zoom,2*cam.zoom,0,phase,phase+2);ctx.stroke();ctx.restore();
+    }
     if (type === T_FOREST || type === T_HILL) {
       const ox = ((hsh & 15) - 7) * cam.zoom;
       drawPine(ctx, s.x + ox, s.y, cam.zoom, hsh);
@@ -405,6 +411,15 @@ export function drawMap(ctx, state, view) {
   props.sort((a, b) => a.k - b.k);
   for (const p of props) p.draw();
 
+  if(view.effects!==false){
+    ctx.save();ctx.globalAlpha=.13;
+    for(let i=0;i<5;i++){
+      const bx=((time*.008+i*147)%(w+120))-60,by=40+(i*73)%(Math.max(100,h*.45));
+      ctx.strokeStyle="#f4e9bd";ctx.lineWidth=1.2;ctx.beginPath();
+      const flap=Math.sin(time*.003+i)*3;
+      ctx.moveTo(bx-5,by-flap);ctx.quadraticCurveTo(bx-2,by-3,bx,by);ctx.quadraticCurveTo(bx+2,by-3,bx+5,by-flap);ctx.stroke();
+    }ctx.restore();
+  }
   drawInsetMap(ctx, state, playerId, w, h);
 }
 
