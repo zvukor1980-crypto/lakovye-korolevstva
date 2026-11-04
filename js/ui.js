@@ -199,7 +199,7 @@ export function topHTML(game) {
   return `<div class="dayline">
       <strong>${esc(cal.label)}</strong>
       <span>${esc(cal.dayName)}${you ? "" : " · " + esc(p.name)}</span>
-      <button class="btn icon" data-act="open-system" aria-label="Меню">☰</button>
+      <button class="btn icon" data-act="open-system" aria-label="Меню"></button>
     </div>
     <div class="resbar">${resourcesHTML(p.resources)}</div>`;
 }
