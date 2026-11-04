@@ -1,7 +1,7 @@
 /** Нарисованные тайлы, спрайты и живая анимация фигур. */
 
 import {
-  FLAG_RIVER, T_DIRT, T_FOREST, T_GRASS, T_HILL, T_LAVA, T_MOUNTAIN, T_SAND, T_SNOW, T_SWAMP, T_WATER,
+  portraitFor, FLAG_RIVER, T_DIRT, T_FOREST, T_GRASS, T_HILL, T_LAVA, T_MOUNTAIN, T_SAND, T_SNOW, T_SWAMP, T_WATER,
 } from "./data.js";
 
 const images = new Map();
@@ -71,7 +71,7 @@ export const SPR = {
 };
 
 export function bodySrc(id) {
-  return `art/bodies/${id}.webp`;
+  return portraitFor(id);
 }
 export function rideSrc(id) {
   return `art/ride/${id}.webp`;
@@ -198,11 +198,6 @@ export function drawFigure(ctx, img, x, y, height, time, opt = {}) {
   if (bright > 1.05) ctx.filter = `brightness(${bright})`;
   ctx.drawImage(img, -w / 2, -height, w, height);
   ctx.filter = "none";
-  const shine = (Math.sin(time / 520 + seed) * 0.5 + 0.5) * w;
-  ctx.globalCompositeOperation = "lighter";
-  ctx.globalAlpha = alpha * 0.22;
-  ctx.fillStyle = "#fff8e4";
-  ctx.fillRect(-w / 2 + shine, -height * 0.72, Math.max(3, w * 0.06), height * 0.45);
   ctx.restore();
 }
 

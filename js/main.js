@@ -702,7 +702,9 @@ function startGame(spec) {
 async function autosave() {
   if (!S.game || S.game.battle) return;
   const title = S.game.name;
-  await saves.writeSave("auto", { title, day: S.game.day, scenarioId: S.game.scenarioId, data: serialize(S.game) });
+  try {
+    await saves.writeSave("auto", { title, day: S.game.day, scenarioId: S.game.scenarioId, data: serialize(S.game) });
+  } catch (err) { toast(err.message); }
 }
 
 async function onAct(actName, el) {

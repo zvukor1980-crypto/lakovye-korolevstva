@@ -1,6 +1,9 @@
-const VERSION = "lk-1.8.0";
+const VERSION = "lk-1.8.1";
 const PRECACHE = [
   "./",
+  "./art/realistic/queen-0.webp",
+  "./art/realistic/queen-1.webp",
+  "./art/realistic/queen-2.webp",
   "./art/battle/meadow.jpg",
   "./art/battle/snow.jpg",
   "./art/battle/sun.jpg",
@@ -151,7 +154,7 @@ const PRECACHE = [
   "./version.json",
   "./art/ui/narrator.webp",
   "./art/ui/shopkeeper.webp",
-  "./art/ui/steward.webp"
+  "./art/ui/steward.webp",
   "./art/bodies/n_bandit_u.webp",
   "./art/bodies/n_nomad_u.webp",
   "./art/bodies/n_elem.webp",
@@ -174,12 +177,12 @@ const PRECACHE = [
 ];
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(caches.open(VERSION).then((cache) => cache.addAll(PRECACHE).catch(() => undefined)));
+  event.waitUntil(caches.open(VERSION).then((cache) => cache.addAll(PRECACHE)));
 });
 self.addEventListener("activate", (event) => {
   event.waitUntil((async () => {
     const keys = await caches.keys();
-    await Promise.all(keys.filter((k) => k !== VERSION).map((k) => caches.delete(k)));
+    await Promise.all(keys.filter((k) => k.startsWith("lk-") && k !== VERSION).map((k) => caches.delete(k)));
     await self.clients.claim();
   })());
 });

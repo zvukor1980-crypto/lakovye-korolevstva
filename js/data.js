@@ -1,6 +1,6 @@
 /** Статические данные «Лаковых королевств». Оригинальный мир, механика близкая к HoMM III. */
 
-export const GAME_VERSION = "1.8.0";
+export const GAME_VERSION = "1.8.1";
 
 export const RES_KEYS = ["gold", "lacquer", "resin", "pigment", "amber", "crystal", "pearl"];
 export const RES_NAME = {
@@ -265,13 +265,13 @@ export const CLASSES = {
 };
 
 export const ROSTER = [
-  { id: "ilera", name: "Илэра Валь", classId: "scarlet_might", portrait: "art/ride/ilera.webp" },
+  { id: "ilera", name: "Илэра Валь", classId: "scarlet_might", portrait: "art/realistic/queen-0.webp" },
   { id: "serafina", name: "Серафина Лак", classId: "scarlet_magic", portrait: "art/ride/serafina.webp" },
   { id: "brienne", name: "Бриенна Двор", classId: "scarlet_might", portrait: "art/ride/brienne.webp" },
-  { id: "mirana", name: "Мирана Велес", classId: "emerald_might", portrait: "art/ride/mirana.webp" },
+  { id: "mirana", name: "Мирана Велес", classId: "emerald_might", portrait: "art/realistic/queen-1.webp" },
   { id: "aelwin", name: "Аэльвин Роща", classId: "emerald_magic", portrait: "art/ride/aelwin.webp" },
   { id: "lorena", name: "Лорена Плющ", classId: "emerald_might", portrait: "art/ride/lorena.webp" },
-  { id: "noxira", name: "Ноксира Тень", classId: "onyx_might", portrait: "art/ride/noxira.webp" },
+  { id: "noxira", name: "Ноксира Тень", classId: "onyx_might", portrait: "art/realistic/queen-2.webp" },
   { id: "lilith", name: "Лилит Чернила", classId: "onyx_magic", portrait: "art/ride/lilith.webp" },
   { id: "morvana", name: "Морвана Шпиль", classId: "onyx_might", portrait: "art/ride/morvana.webp" },
   { id: "cassia", name: "Кассия Багр", classId: "scarlet_magic", portrait: "art/ride/cassia.webp" },
@@ -616,6 +616,9 @@ export const SKIRMISH = [
 export const PLAYER_COLORS = ["#c4374f", "#1f8a5b", "#8b6bc4", "#d4a017", "#3a7bd5", "#d06b3a"];
 
 export function portraitFor(creatureId) {
+  const base = String(creatureId).replace(/_u$/, "");
+  const art = { s_champ: 0, e_bow: 1, o_bone: 2 };
+  if (base in art) return `art/realistic/queen-${art[base]}.webp`;
   return `art/bodies/${creatureId}.webp`;
 }
 

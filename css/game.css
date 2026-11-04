@@ -737,3 +737,26 @@ hr.sep { border: 0; border-top: 1px solid rgba(231,197,106,.18); margin: 8px 0; 
   .screen { padding-left: calc(18vw + var(--safe-left)); padding-right: calc(18vw + var(--safe-right)); }
   .modal-back { padding-left: calc(16vw + var(--safe-left)); padding-right: calc(16vw + var(--safe-right)); }
 }
+
+/* Roomier character cards and a quieter lacquer-and-gold finish. */
+:root { --muted: #d1c5b0; }
+.btn { transition: border-color .16s, background .16s, transform .16s; }
+.btn:active:not(:disabled) { transform: translateY(1px); }
+.btn:focus-visible { outline: 3px solid #fff0c2; outline-offset: 2px; }
+.sheet { background: linear-gradient(145deg, #231a21, #100f13 60%); }
+.portrait-lg, .hero-face {
+  background: radial-gradient(ellipse at 50% 30%, #52413c, #17151e 72%);
+  border: 1px solid #8d7954;
+}
+.portrait-lg { max-height: min(46dvh, 400px); }
+.hero-face img { max-height: min(38dvh, 320px); }
+.unit img { height: 94px; }
+.aslot img { height: 68px; }
+.herobar-port img { object-fit: contain; background: radial-gradient(#544138, #171119); }
+@media (max-height: 540px) {
+  .menu-lux { overflow-y: auto; }
+  .menu-crest h1 { font-size: 30px; }
+  .menu-actions.lux { margin-top: 14px; }
+  .sheet { max-height: calc(100dvh - 20px - var(--safe-top) - var(--safe-bottom)); }
+}
+@media (prefers-reduced-motion: reduce) { .btn { transition: none; } }

@@ -10,13 +10,14 @@ const HEX_DIRS_EVEN = [[1, 0], [1, -1], [0, -1], [-1, 0], [0, 1], [1, 1]];
 const HEX_DIRS_ODD = [[1, 0], [0, -1], [-1, -1], [-1, 0], [-1, 1], [0, 1]];
 
 export function hexNeighbors(c, r) {
-  const dirs = (r & 1) ? HEX_DIRS_ODD : HEX_DIRS_EVEN;
-  return dirs.map(([dc, dr]) => [c + dc, r + dr]);
+  // Column-offset layout matches the portrait battlefield in render.js.
+  const dirs = (c & 1) ? HEX_DIRS_EVEN : HEX_DIRS_ODD;
+  return dirs.map(([dr, dc]) => [c + dc, r + dr]);
 }
 
 function toCube(c, r) {
-  const x = c - (r - (r & 1)) / 2;
-  const z = r;
+  const x = r - (c - (c & 1)) / 2;
+  const z = c;
   const y = -x - z;
   return [x, y, z];
 }
@@ -309,6 +310,17 @@ export function reachable(battle, stack) {
   const parent = new Map();
   const start = hk(stack.c, stack.r);
   dist.set(start, 0);
+  if (flying) {
+    // Flight crosses occupied hexes and barriers, but must land on a free hex.
+    for (let c = 0; c < BCOLS; c++) for (let r = 0; r < BROWS; r++) {
+      const key = hk(c, r), cost = hexDist(stack.c, stack.r, c, r);
+      if (!cost || cost > spd || unitAt(battle, c, r)) continue;
+      if (["wall", "gate", "rock", "tree"].includes(battle.obstacles[key])) continue;
+      dist.set(key, cost);
+      parent.set(key, start);
+    }
+    return { dist, parent, spd, flying };
+  }
   const q = [[stack.c, stack.r]];
   while (q.length) {
     const [c, r] = q.shift();
