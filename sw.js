@@ -1,5 +1,7 @@
-const VERSION = "lk-2.1.0";
+const VERSION = "lk-2.1.1";
 const PRECACHE = [
+  "./js/updates.js",
+  "./update.html",
   "./art/world/battle-valley.webp",
   "./art/world/dirt.webp",
   "./art/world/grass.webp",
@@ -225,7 +227,17 @@ const PRECACHE = [
 ];
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(caches.open(VERSION).then((cache) => cache.addAll(PRECACHE)));
+  event.waitUntil((async()=>{
+    const cache=await caches.open(VERSION);
+    const core=PRECACHE.filter(url=>url==="./"||/\.(?:js|css|html|webmanifest)$/.test(url));
+    await cache.addAll(core.map(url=>new Request(url,{cache:"reload"})));
+    // A temporarily unavailable illustration must not block a code update.
+    const art=PRECACHE.filter(url=>!core.includes(url));
+    let cursor=0;
+    await Promise.all(Array.from({length:6},async()=>{
+      while(cursor<art.length){const url=art[cursor++];try{await cache.add(new Request(url,{cache:"reload"}));}catch{/* Loaded on demand when online. */}}
+    }));
+  })());
 });
 self.addEventListener("activate", (event) => {
   event.waitUntil((async () => {
@@ -248,11 +260,14 @@ self.addEventListener("fetch", (event) => {
   }
   event.respondWith((async () => {
     const cache = await caches.open(VERSION);
-    const cached = await cache.match(req);
-    const fetchPromise = fetch(req).then((res) => {
-      if (res && res.ok) cache.put(req, res.clone());
+    // Code belongs to one installed release: never replace cached modules in the background.
+    const canonical = new URL(req.url);canonical.search = "";
+    const cached = await cache.match(req) || await cache.match(canonical.href);
+    if(cached)return cached;
+    try {
+      const res = await fetch(req);
+      if(res.ok)await cache.put(req,res.clone());
       return res;
-    }).catch(() => cached);
-    return cached || fetchPromise;
+    } catch { return new Response("Файл недоступен офлайн",{status:503}); }
   })());
 });

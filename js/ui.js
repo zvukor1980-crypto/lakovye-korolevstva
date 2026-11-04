@@ -2,7 +2,7 @@ import {eraId, eraStatus} from "./epochs.js";
 /** Разметка экранов. Вся речь интерфейса — по-русски. */
 
 import {
-  ERAS, FACTION_ORDER, BUILDING_IDS, eraArt, ARTIFACTS, CREATURES, FACTIONS, RES_KEYS, RES_NAME, ROSTER, SCENARIOS, SHOP_PACKS,
+  GAME_VERSION, ERAS, FACTION_ORDER, BUILDING_IDS, eraArt, ARTIFACTS, CREATURES, FACTIONS, RES_KEYS, RES_NAME, ROSTER, SCENARIOS, SHOP_PACKS,
   SKILL_RANK, SKILLS, SKIRMISH, SPELLS, SLOTS, TRADE, buildingDef, calendar,
   portraitFor, tiersOf, wisdomCap, xpForLevel,
 } from "./data.js";
@@ -33,7 +33,7 @@ const GEMS = {
 export function menuHTML(opts) {
   return `<div class="screen menu-lux">
     <div class="menu-mist" aria-hidden="true"></div><div class="menu-crest"><span class="kicker">Четыре народа · Три эпохи</span>
-      <h1>Лаковые<br>королевства</h1><p class="menu-caption">Путь начинается на рассвете</p>
+      <h1>Лаковые<br>королевства</h1><p class="menu-caption">Путь начинается на рассвете</p><span class="version-badge">Версия ${GAME_VERSION} · Рассвет королевств</span>
     </div>
     <div class="menu-actions lux">
       ${opts.continue ? `<button class="btn lux" data-act="continue">Продолжить</button>` : ""}
@@ -42,6 +42,7 @@ export function menuHTML(opts) {
       <button class="btn lux" data-act="load">Загрузить</button>
       <button class="btn lux" data-act="shop-menu">Лавка</button>
       <button class="btn lux" data-act="settings">Настройки</button>
+      <button class="btn small ghost menu-update" data-act="check-update">Проверить обновление · ${GAME_VERSION}</button>
       <div class="row">
         <button class="btn small ghost" data-act="bestiary">Бестиарий</button>
         <button class="btn small ghost" data-act="help">Как играть</button>
@@ -129,7 +130,7 @@ export function bestiaryHTML() {
 }
 
 export function settingsHTML(st) {
-  return sheet("Настройки", `
+  return sheet("Настройки", `<p>Версия ${GAME_VERSION}</p><button class="btn" data-act="check-update">Проверить обновление</button><a class="btn ghost" href="./update.html">Восстановить загрузку файлов</a>
     <label class="field">Звук<select id="set-sound"><option value="on" ${st.sound !== false ? "selected" : ""}>Включён</option><option value="off" ${st.sound === false ? "selected" : ""}>Выключен</option></select></label>
     <label class="field">Музыка<select id="set-music"><option value="on" ${st.music !== false ? "selected" : ""}>Камерная тема</option><option value="off" ${st.music === false ? "selected" : ""}>Выключена</option></select></label>
     <label class="field">Громкость музыки<input id="set-volume" type="range" min="0" max="100" value="${Math.round((st.volume ?? .4)*100)}"></label>

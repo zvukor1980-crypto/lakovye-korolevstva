@@ -838,3 +838,8 @@ hr.sep { border: 0; border-top: 1px solid rgba(231,197,106,.18); margin: 8px 0; 
 .card { border-color:#5a6661; }
 .town-stage { height:270px; }
 @media(max-height:700px){.menu-crest h1{font-size:32px}.menu-caption{display:none}.menu-actions.lux{gap:6px}.menu-actions.lux .btn{min-height:44px;padding:7px}}
+.version-badge {display:inline-block;background:#102d36e8;border:1px solid #b49c68;border-radius:20px;padding:5px 12px;color:#f2ddb0;font-size:11px;letter-spacing:.03em;}
+.menu-actions.lux>.menu-update {grid-column:1/-1;min-height:36px;font-size:12px;}
+#upd .card {max-width:420px;margin:auto;padding:18px;}
+#upd-state {font-size:13px;}
+@media(max-height:740px){.menu-lux{overflow-y:auto}.menu-actions.lux{padding-top:16px}.menu-crest{padding:4px}.menu-crest h1{font-size:30px}}

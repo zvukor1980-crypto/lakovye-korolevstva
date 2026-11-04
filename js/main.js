@@ -1,3 +1,4 @@
+import {startUpdates} from "./updates.js";
 import {researchEra, eraId, syncEra} from "./epochs.js";
 import { CREATURES, GAME_VERSION, SKIRMISH, ROSTER, CLASSES, FACTIONS, calendar } from "./data.js";
 import { scenarioById } from "./engine.js";
@@ -88,7 +89,7 @@ async function boot() {
   preloadFactionArt();
   S.slots = await saves.listSaves().catch(() => []);
   renderScreen();
-  registerSW();
+  checkUpdates = startUpdates(GAME_VERSION,{status:toast,beforeReload:saveBeforeUpdate});
   if (!S.loopOn) {
     S.loopOn = true;
     requestAnimationFrame(frame);
@@ -704,6 +705,12 @@ function startGame(spec) {
   speak("Наше королевство ждёт. Начнём поход.");
 }
 
+async function saveBeforeUpdate() {
+  if(!S.game)return;
+  if(S.game.battle)throw new Error("Завершите бой перед обновлением, чтобы не потерять ход.");
+  await saves.writeSave("auto",{title:S.game.name,day:S.game.day,scenarioId:S.game.scenarioId,data:serialize(S.game)});
+}
+
 async function autosave() {
   if (!S.game || S.game.battle) return;
   const title = S.game.name;
@@ -777,6 +784,7 @@ async function onAct(actName, el) {
       }));
       return;
     }
+    if (actName === "check-update") { await checkUpdates?.(true);return; }
     if (actName === "test-voice") {
       const voices=window.speechSynthesis?.getVoices()||[];
       if(!voices.some(v=>/^ru/i.test(v.lang))){toast("Русский системный голос пока недоступен на устройстве.");return;}
@@ -1206,45 +1214,6 @@ document.body.addEventListener("pointerdown", () => {
   configureVoice(S.settings.voice);
 }, { once: false });
 
-function registerSW() {
-  if (!("serviceWorker" in navigator)) return;
-  window.addEventListener("load", async () => {
-    try {
-      const reg = await navigator.serviceWorker.register("./sw.js");
-      reg.addEventListener("updatefound", () => {
-        const nw = reg.installing;
-        if (!nw) return;
-        nw.addEventListener("statechange", () => {
-          if (nw.state === "installed" && navigator.serviceWorker.controller) showUpdate(reg);
-        });
-      });
-      if (reg.waiting && navigator.serviceWorker.controller) showUpdate(reg);
-      let hadController = !!navigator.serviceWorker.controller;
-      navigator.serviceWorker.addEventListener("controllerchange", () => {
-        if (!hadController) { hadController = true; return; }
-        if (S.reloading || sessionStorage.getItem("lk-reloaded")) return;
-        S.reloading = true;
-        sessionStorage.setItem("lk-reloaded", "1");
-        location.reload();
-      });
-      const res = await fetch("./version.json", { cache: "no-store" });
-      const v = await res.json();
-      if (v.version && v.version !== GAME_VERSION) showUpdate(reg);
-    } catch { /* офлайн */ }
-  });
-}
-function showUpdate(reg) {
-  if (document.getElementById("upd")) return;
-  const el = document.createElement("div");
-  el.id = "upd";
-  el.className = "banner";
-  el.innerHTML = `<div class="card"><b>Есть обновление</b><p class="muted">Новая версия лаковых королевств готова.</p><button class="btn primary" id="upd-btn">Обновить</button></div>`;
-  document.body.appendChild(el);
-  document.getElementById("upd-btn").onclick = () => {
-    const w = reg && (reg.waiting || (reg.installing));
-    if (w) w.postMessage({ type: "SKIP_WAITING" });
-    else location.reload();
-  };
-}
+let checkUpdates;
 
 boot();

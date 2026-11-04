@@ -1,0 +1,10 @@
+<!doctype html><html lang="ru"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>Обновление Лаковых королевств</title><style>body{margin:0;background:#11252c;color:#f1e4c3;font:18px system-ui;padding:40px 22px;line-height:1.6}main{max-width:520px;margin:auto}button,a{display:block;padding:16px;border-radius:12px;margin:18px 0;background:#d9ba77;color:#172a30;font:700 18px system-ui;border:0;text-align:center}small{color:#bbc8c6}</style><main><h1>Лаковые королевства</h1><h2>Восстановить обновление</h2><p>Загрузим свежие файлы игры. Сохранённые партии и настройки останутся на месте.</p><button id="repair">Обновить файлы игры</button><p id="status" role="status"></p><a href="./">Вернуться в игру</a><small>После обновления откройте прежний значок игры. В главном меню должен появиться номер 2.1.1.</small></main><script>
+document.getElementById('repair').onclick=async()=>{
+const b=document.getElementById('repair'),s=document.getElementById('status');b.disabled=true;s.textContent='Проверяем соединение…';
+try{
+const base=new URL('./',location.href),r=await fetch(new URL('version.json?t='+Date.now(),base),{cache:'no-store'});if(!r.ok)throw Error('Нет соединения');const v=await r.json();
+if('serviceWorker'in navigator){const regs=await navigator.serviceWorker.getRegistrations();for(const reg of regs)if(reg.scope===base.href)await reg.unregister();}
+if('caches'in window){for(const name of await caches.keys())if(/^lk-\d/.test(name))await caches.delete(name);}
+s.textContent='Открываем версию '+v.version+'…';location.replace(new URL('index.html?updated='+encodeURIComponent(v.version)+'&t='+Date.now(),base).href);
+}catch(e){s.textContent='Не получилось обновить. Подключитесь к интернету и повторите.';b.disabled=false;}
+};</script></html>

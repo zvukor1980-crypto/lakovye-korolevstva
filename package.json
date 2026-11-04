@@ -1,1 +1,1 @@
-{"private":true,"type":"module","scripts":{"test":"node tests/regression.mjs && node tests/epochs.mjs && node tests/audio.mjs"}}
+{"private":true,"type":"module","scripts":{"test":"node tests/regression.mjs && node tests/epochs.mjs && node tests/audio.mjs && node tests/updates.mjs"}}
