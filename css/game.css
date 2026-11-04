@@ -176,7 +176,106 @@ h1, h2, h3 { font-family: "Cormorant LK", Georgia, serif; font-weight: 700; marg
   color: var(--ink);
 }
 .btn.small { min-height: 44px; font-size: 14px; padding: 8px 10px; border-radius: 12px; }
-.btn:active { transform: translateY(1px); }
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  overflow: hidden;
+}
+.btn::before {
+  font-size: 16px;
+  line-height: 1;
+  color: #f0d48a;
+}
+.btn.primary::before, .btn.lux::before { color: inherit; }
+.btn[data-act="campaign"]::before { content: "♛"; }
+.btn[data-act="skirmish"]::before { content: "⚔"; }
+.btn[data-act="load"]::before,
+.btn[data-act="open-load-game"]::before,
+.btn[data-act="load-slot"]::before { content: "▤"; }
+.btn[data-act="shop-menu"]::before,
+.btn[data-act="open-shop"]::before,
+.btn[data-act="shop-pack"]::before { content: "◆"; }
+.btn[data-act="settings"]::before,
+.btn[data-act="open-settings-game"]::before,
+.btn[data-act="save-settings"]::before { content: "⚙"; }
+.btn[data-act="bestiary"]::before { content: "❦"; }
+.btn[data-act="help"]::before { content: "✦"; }
+.btn[data-act="continue"]::before,
+.btn[data-act="close-modal"]::before,
+.btn[data-act="back"]::before,
+.btn[data-act="back-town"]::before { content: "↩"; }
+.btn[data-act="open-hero"]::before,
+.btn[data-act="next-hero"]::before,
+.btn[data-act="focus-hero"]::before { content: "♛"; }
+.btn[data-act="open-town"]::before,
+.btn[data-act="open-hall"]::before,
+.btn[data-act="build"]::before,
+.btn[data-act="focus-town"]::before { content: "⌂"; }
+.btn[data-act="open-spell"]::before,
+.btn[data-act="battle-spell"]::before,
+.btn[data-act="aim-spell"]::before,
+.btn[data-act="learn-spell"]::before { content: "✦"; }
+.btn[data-act="end-turn"]::before,
+.btn[data-act="end-turn-force"]::before { content: "♛"; }
+.btn[data-act="open-overview"]::before { content: "◉"; }
+.btn[data-act="open-save"]::before,
+.btn[data-act="write-slot"]::before { content: "▤"; }
+.btn[data-act="open-system"]::before { content: "⚙"; }
+.btn[data-act="battle-start"]::before,
+.btn[data-act="battle-wait"]::before { content: "⏳"; }
+.btn[data-act="battle-defend"]::before { content: "⛨"; }
+.btn[data-act="battle-auto"]::before { content: "⚡"; }
+.btn[data-act="battle-retreat"]::before,
+.btn[data-act="battle-surrender"]::before,
+.btn[data-act="battle-surrender-yes"]::before { content: "⚑"; }
+.btn[data-act="battle-grid"]::before { content: "⬡"; }
+.btn[data-act="battle-log"]::before { content: "✎"; }
+.btn[data-act="recruit-go"]::before,
+.btn[data-act="recruit-max"]::before,
+.btn[data-act="dwell-buy"]::before,
+.btn[data-act="hire"]::before { content: "❦"; }
+.btn[data-act="open-trade"]::before,
+.btn[data-act="trade"]::before { content: "◆"; }
+.btn[data-act="split-ask"]::before,
+.btn[data-act="split-do"]::before { content: "✂"; }
+.btn[data-act="level"]::before { content: "★"; }
+.btn[data-act="to-menu"]::before { content: "↩"; }
+.btn[data-act="town-hit"]::before,
+.btn.bld-row::before { content: "⌂"; }
+.btn::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 38%, rgba(255,236,190,.22) 50%, transparent 62%);
+  transform: translateX(-130%);
+  animation: sheen 4.2s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes sheen {
+  0%, 55% { transform: translateX(-130%); }
+  100% { transform: translateX(130%); }
+}
+.btn:active { transform: translateY(2px) scale(0.98); filter: brightness(1.14); }
+.voice {
+  display: flex; gap: 10px; align-items: center;
+  padding: 8px; border-radius: 14px;
+  border: 1px solid #e6c878;
+  background: rgba(20,16,10,.65);
+}
+.voice img { width: 72px; height: 88px; object-fit: cover; object-position: center top; border-radius: 10px; }
+.voice b { color: var(--gold); font-family: "Cormorant LK", serif; font-size: 20px; }
+.voice p { margin: 2px 0 0; font-size: 13px; color: var(--muted); }
+.town-steward {
+  position: absolute; right: 8%; bottom: 0; height: 150px;
+  filter: drop-shadow(0 8px 8px rgba(0,0,0,.55));
+  pointer-events: none;
+}
+.build-bar {
+  display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px;
+}
+.build-bar .btn { flex: 0 0 auto; min-height: 44px; }
 .btn:disabled { opacity: 0.45; }
 .row { display: flex; gap: 8px; }
 .row > * { flex: 1; }

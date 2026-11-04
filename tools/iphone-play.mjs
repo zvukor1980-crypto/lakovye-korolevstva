@@ -84,6 +84,12 @@ try {
   await audit("справка");
   await clickAct("back");
 
+  await clickAct("bestiary");
+  await page.waitForTimeout(300);
+  await audit("бестиарий");
+  await shot("roster");
+  await clickAct("back");
+
   await clickAct("shop-menu");
   await audit("лавка-меню");
   await clickAct("back");

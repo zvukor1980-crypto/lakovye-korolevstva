@@ -51,6 +51,7 @@ export function menuHTML(opts) {
 
 export function helpHTML() {
   return sheet("Как играть", `
+    ${voiceHTML("Наставница Лира", "Я проведу вас по двору. Касания крупные, золото не кусается.")}
     <p class="help"><b>Карта.</b> Коснитесь клетки — героиня пойдёт. Перетаскивайте, чтобы двигать обзор, сведите два пальца, чтобы приблизить. Леса, реки, горы и вода замедляют или закрывают путь. Броды и дороги проходимы.</p>
     <p class="help"><b>Города.</b> Один дом в день. Жилища дают прирост по понедельникам, ратуша поднимает доход, укрепление ставит стены.</p>
     <p class="help"><b>Героини.</b> Атака, защита, сила магии и знание. При уровне выбирайте вторичный навык. Артефакты — в слоты. Книга заклинаний тратит ману, без отката, только мана.</p>
@@ -149,6 +150,7 @@ export function shopHTML(game) {
   const bopts = towns[0] ? availableBuildings(game, towns[0]).map((b) => `<option value="${b.id}">${esc(b.name)}</option>`).join("") : "";
   const packs = SHOP_PACKS.map((pk) => `<button class="btn small" data-act="shop-pack" data-id="${pk.id}">${esc(pk.name)}<div class="float-note">${esc(pk.desc)}</div></button>`).join("");
   return sheet("Лавка двора", `
+    <div class="voice"><img src="art/ui/shopkeeper.webp" alt=""><div><b>Лавочница Мира</b><p>Берите без счёта. Ни таймеров, ни платы.</p></div></div>
     <p class="kicker">Бесплатно · без ограничений · без отката</p>
     <div class="stack">${packs}</div>
     <hr class="sep">
@@ -170,6 +172,10 @@ export function shopHTML(game) {
     <label class="field">Строение<select id="shop-bld">${bopts}</select></label>
     <button class="btn" data-act="shop-build">Возвести указом</button>
     <button class="btn ghost" data-act="close-modal">Закрыть</button>`);
+}
+
+export function voiceHTML(name, line) {
+  return `<div class="voice"><img src="art/ui/narrator.webp" alt=""><div><b>${esc(name)}</b><p>${esc(line)}</p></div></div>`;
 }
 
 function sheet(title, body) {
@@ -209,7 +215,7 @@ export function dockHTML(game, hero, mode, flags = {}) {
       coach = `<div class="coach"><span>Коснитесь клетки — героиня пойдёт. «Ход» отдаёт день.</span><button class="btn small" data-act="dismiss-coach">Ясно</button></div>`;
     }
   } catch { /* хранилище недоступно */ }
-  return `${coach}<p class="orb-caption">${esc(nm)} · ${esc(sub)}</p>
+  return `${coach}<p class="orb-caption">${esc(nm)} · ${esc(sub)} <button class="btn small" data-act="next-hero">Дальше</button></p>
     <div class="orb-row">
       <button class="orb" data-act="open-hero" aria-label="Героиня"><img src="${esc(img)}" alt=""><span>Героиня</span></button>
       <button class="orb" data-act="open-town" aria-label="Город"><span class="glyph">⌂</span><span>Город</span></button>
@@ -335,19 +341,26 @@ export function townHTML(game, townId) {
   const fac = FACTIONS[town.faction];
   const visitor = game.heroes.find((h) => !h.lost && h.x === town.x && h.y === town.y && h.player === town.owner);
   const order = ["capitol", "cityHall", "townHall", "castle", "citadel", "fort", "mage5", "mage4", "mage3", "mage2", "mage1", "tavern", "market", "blacksmith", "silo", "dw7", "dw6", "dw5", "dw4", "dw3", "dw2", "dw1", "up7", "up6", "up5", "up4", "up3", "up2", "up1", "special", "horde", "grail"];
-  const built = order.filter((id) => {
+  const standing = order.filter((id) => {
     if (!town.buildings[id]) return false;
     if (/^dw(\d)$/.test(id) && town.buildings["up" + id.slice(2)]) return false;
     return true;
-  }).map((id) => {
+  });
+  const built = standing.map((id) => {
     const def = buildingDef(town.faction, id) || { name: id, desc: "" };
     const name = def.name.replace(/^Жилище: /, "").replace(/^Улучшение: /, "");
     return `<button class="btn bld-row" data-act="town-hit" data-town="${town.id}" data-id="${id}"><b>${esc(name)}</b><span>${esc(def.desc || "")}</span></button>`;
+  }).join("");
+  const bar = standing.map((id) => {
+    const def = buildingDef(town.faction, id) || { name: id };
+    const name = (def.name || id).replace(/^Жилище: /, "").replace(/^Улучшение: /, "").split(" ")[0];
+    return `<button class="btn small" data-act="town-hit" data-town="${town.id}" data-id="${id}">${esc(name)}</button>`;
   }).join("");
   const fortSrc = town.buildings.fort || town.buildings.citadel || town.buildings.castle ? `art/sprites/castle-${town.faction}.webp` : BLD_SPRITE.hall;
   return `<div class="modal-back"><div class="sheet town-sheet">
     <div class="town-stage" style="background-image:url(art/towns/${town.faction}.jpg)">
       <img class="town-deco" src="${fortSrc}" alt="">
+      <img class="town-steward" src="art/ui/steward.webp" alt="">
       <div class="town-caption">${esc(town.name)}<small>${esc(fac.name)}</small></div>
     </div>
     <header class="sheeth">
@@ -355,6 +368,7 @@ export function townHTML(game, townId) {
       <button class="btn small ghost" data-act="close-modal">Закрыть</button>
     </header>
     <div class="town-body">
+      <div class="build-bar">${bar}</div>
       <div class="army-line"><span>${visitor ? esc(visitor.name) : "В гостях"}</span>${visitor ? armyRow(visitor.army, "hero:" + visitor.id, you) : `<p class="muted">Героини в городе нет. Поставьте её на замок.</p>`}</div>
       <div class="army-line"><span>Гарнизон</span>${armyRow(town.garrison, "garrison", you)}</div>
       <div class="row">
@@ -407,6 +421,7 @@ export function recruitHTML(game, townId, buildingId) {
       <div id="rec-out" class="kicker" data-cost="${esc(JSON.stringify(cr.cost))}">1</div>
       <div class="row">
         <button class="btn primary" data-act="recruit-go" data-town="${town.id}" data-cr="${id}" ${pool ? "" : "disabled"}>Нанять</button>
+        <button class="btn" data-act="recruit-max" data-town="${town.id}" data-cr="${id}" data-n="${pool}" ${pool ? "" : "disabled"}>Нанять всех</button>
         <button class="btn" data-act="creature" data-id="${id}">О существе</button>
       </div>
     </div></div></div>`;
@@ -499,6 +514,7 @@ export function heroHTML(game, heroId) {
       ${armyRow(hero.army, "hero:" + hero.id, you)}
       <div class="row">
         <button class="btn small" data-act="split-ask" data-hero="${hero.id}">Разделить</button>
+        <button class="btn small" data-act="next-hero">Следующая</button>
         <button class="btn small ghost" data-act="hero-wait">Снять выделение</button>
       </div>
       <h3>Сумка</h3>
@@ -606,7 +622,8 @@ export function creatureHTML(id, back) {
 
 export function eventHTML(title, text) {
   return `<div class="modal-back"><div class="sheet"><header class="sheeth"><h2>${esc(title || "Событие")}</h2></header>
-    <div class="body stack"><p>${esc(text)}</p><button class="btn primary" data-act="close-modal">Дальше</button></div></div></div>`;
+    <div class="body stack">${voiceHTML("Странница", text)}
+    <button class="btn primary" data-act="close-modal">Дальше</button></div></div></div>`;
 }
 
 export function weekHTML(game) {
@@ -687,14 +704,16 @@ export function overviewHTML(game) {
 
 export function endHTML(end) {
   return `<div class="modal-back"><div class="sheet"><header class="sheeth"><h2>${end.win ? "Победа" : "Поражение"}</h2></header>
-    <div class="body stack"><p>${esc(end.text)}</p>
+    <div class="body stack">${voiceHTML(end.win ? "Глашатайша" : "Кастелянша Лира", end.win ? "Знамя держится. Двор ваш." : "Двор отступил, но имена помнят.")}
+      <p>${esc(end.text)}</p>
       <button class="btn primary" data-act="to-menu">В меню</button>
     </div></div></div>`;
 }
 
 export function briefHTML(game) {
   return `<div class="modal-back"><div class="sheet"><header class="sheeth"><h2>${esc(game.name)}</h2></header>
-    <div class="body stack"><p>${esc(game.briefing || "Знамя поднято.")}</p>
+    <div class="body stack">${voiceHTML("Кастелянша Лира", "Слушайте приказ двора и не теряйте знамя.")}
+      <p>${esc(game.briefing || "Знамя поднято.")}</p>
       <button class="btn primary" data-act="close-modal">В поход</button>
     </div></div></div>`;
 }

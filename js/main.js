@@ -774,6 +774,17 @@ async function onAct(actName, el) {
       return;
     }
     if (actName === "end-turn-force") { S.forceEnd = true; S.modal = null; await endPlayerTurn(); return; }
+    if (actName === "next-hero") {
+      const list = g.heroes.filter((h) => h.player === human().id && !h.lost);
+      if (!list.length) return;
+      const i = Math.max(0, list.findIndex((h) => h.id === S.selected));
+      const n = list[(i + 1) % list.length];
+      S.selected = n.id;
+      focus(n);
+      if (S.modal && S.modal.type === "hero") S.modal = { type: "hero", id: n.id };
+      paintChrome();
+      return;
+    }
     if (actName === "open-hero") {
       const h = selectedHero();
       if (h) { S.modal = { type: "hero", id: h.id }; paintChrome(); }
@@ -839,8 +850,10 @@ async function onAct(actName, el) {
       paintChrome();
       return;
     }
-    if (actName === "recruit-go") {
-      const n = Number((document.getElementById("rec-n") || {}).value) || 1;
+    if (actName === "recruit-max" || actName === "recruit-go") {
+      const n = actName === "recruit-max"
+        ? (Number(el.dataset.n) || 1)
+        : (Number((document.getElementById("rec-n") || {}).value) || 1);
       let r = recruit(g, el.dataset.town, el.dataset.cr, n, "hero");
       if (!r.ok) r = recruit(g, el.dataset.town, el.dataset.cr, n, "garrison");
       toast(r.message || r.error);

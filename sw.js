@@ -1,4 +1,4 @@
-const VERSION = "lk-1.5.0";
+const VERSION = "lk-1.6.0";
 const PRECACHE = [
   "./",
   "./art/battle/meadow.jpg",
@@ -141,6 +141,9 @@ const PRECACHE = [
   "./js/visual.js",
   "./manifest.webmanifest",
   "./version.json",
+  "./art/ui/narrator.webp",
+  "./art/ui/shopkeeper.webp",
+  "./art/ui/steward.webp"
   "./art/bodies/n_bandit_u.webp",
   "./art/bodies/n_nomad_u.webp",
   "./art/bodies/n_elem.webp",
