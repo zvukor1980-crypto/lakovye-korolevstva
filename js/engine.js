@@ -1,3 +1,4 @@
+import {eraId, syncEra, eraStatus, researchEra} from "./epochs.js";
 /** Правила партии: карта, экономика, герои, ИИ, связь с боем. */
 
 import {
@@ -322,6 +323,7 @@ export function createGame(spec) {
       name: p.name,
       control: p.control,
       faction: p.faction,
+      era: 0,
       ai: p.ai || "normal",
       color: p.color || PLAYER_COLORS[i % PLAYER_COLORS.length],
       resources: emptyResources(spec.resources || { gold: 15000, lacquer: 20, resin: 12, pigment: 4, amber: 4, crystal: 4, pearl: 2 }),
@@ -539,7 +541,7 @@ function sprinkle(state, spec) {
     const amount = res === "gold" ? ri(state, 400, 1800) : ri(state, 2, 6);
     state.objects.push({ id: uid(state), type: "resource", x: c[0], y: c[1], res, amount });
   }
-  const factions = ["scarlet", "emerald", "onyx", "neutral"];
+  const factions = ["scarlet", "emerald", "onyx", "inca", "neutral"];
   const dwellN = Math.round(area / 180);
   for (let k = 0; k < dwellN; k++) {
     const c = take(); if (!c) break;
@@ -1624,11 +1626,14 @@ export function buildStructure(state, townId, buildingId, free = false) {
 
 export function recruit(state, townId, creatureId, count, dest) {
   const town = townById(state, townId);
+  const owner = town && playerById(state,town.owner);
+  creatureId = eraId(creatureId, owner?.era || 0);
   const cr = CREATURES[creatureId];
   if (!town || !cr) return { ok: false };
   count = count | 0;
   if (count <= 0) return { ok: false, error: "Укажите число." };
-  const base = baseCreatureId(creatureId);
+  if (cr.faction !== town.faction) return {ok:false,error:"Этот отряд не принадлежит городу."};
+  const base = baseCreatureId(creatureId).split("@")[0];
   const baseCr = CREATURES[base];
   const tier = baseCr.tier;
   if (!town.buildings["dw" + tier]) return { ok: false, error: "Нет жилища." };
@@ -1718,6 +1723,7 @@ export function hireHero(state, townId) {
   p.resources.gold -= 2500;
   const hero = makeHero(state, r.id, town.owner, spot.x, spot.y);
   state.heroes.push(hero);
+  syncEra(state,town.owner);
   reveal(state, town.owner, hero.x, hero.y, effective(hero).sight);
   return { ok: true, message: "Нанята " + hero.name + ".", heroId: hero.id };
 }
@@ -1845,6 +1851,7 @@ function onNewDay(state) {
 }
 
 export function beginTurn(state) {
+  syncEra(state, state.players[state.current].id);
   const p = state.players[state.current];
   const cal = calendar(state.day);
   for (const h of state.heroes) {
@@ -1881,7 +1888,7 @@ function townIncome(town) {
   if (town.buildings.capitol) g = 4000;
   else if (town.buildings.cityHall) g = 2000;
   else if (town.buildings.townHall) g = 1000;
-  if (town.buildings.special && town.faction === "scarlet") g += 500;
+  if (town.buildings.special && ["scarlet","inca"].includes(town.faction)) g += 500;
   if (town.buildings.grail) g += 5000;
   return g;
 }
@@ -1959,6 +1966,7 @@ export function aiAct(state) {
   }
   for (const town of state.towns) {
     if (town.owner !== p.id) continue;
+    if (eraStatus(state,town).ready) return {type:"research",townId:town.id};
     if (!town.builtToday) {
       const opts = availableBuildings(state, town).filter((b) => canAfford(p.resources, b.cost));
       opts.sort((a, b) => BUILD_PRIORITY.indexOf(a.id) - BUILD_PRIORITY.indexOf(b.id));
@@ -1973,7 +1981,7 @@ export function aiAct(state) {
       const upId = town.buildings["up" + (i + 1)] && base.levelUpTo ? base.levelUpTo : base.id;
       const have = town.pool[base.id] || 0;
       if (!have || !town.buildings["dw" + (i + 1)]) continue;
-      const cr = CREATURES[upId];
+      const cr = CREATURES[eraId(upId,p.era||0)];
       const affordOne = canAfford(p.resources, cr.cost);
       if (!affordOne) continue;
       let count = 0;
@@ -2067,7 +2075,7 @@ export function shopApply(state, action) {
     if (!hero) return { ok: false, error: "Нет героини." };
     const n = Math.max(1, action.count | 0);
     if (!CREATURES[action.creatureId]) return { ok: false };
-    if (!addToArmy(hero.army, action.creatureId, n)) return { ok: false, error: "Нет места в армии." };
+    if (!addToArmy(hero.army, eraId(action.creatureId,p.era||0), n)) return { ok: false, error: "Нет места в армии." };
     return { ok: true, message: "Отряд влился в армию " + hero.name + "." };
   }
   if (action.kind === "artifact") {
@@ -2152,7 +2160,7 @@ export function deserialize(raw) {
   const s = typeof raw === "string" ? JSON.parse(raw) : raw;
   s.map.terrain = b64ToBytes(s.map.terrain);
   s.map.flags = b64ToBytes(s.map.flags);
-  for (const p of s.players) p.fog = b64ToBytes(p.fog);
+  for (const p of s.players) { p.fog = b64ToBytes(p.fog); syncEra(s,p.id); }
   return s;
 }
 
@@ -2162,7 +2170,7 @@ export function scenarioById(id) {
 
 export function makeSkirmish(opts) {
   const map = opts.map;
-  const factions = ["scarlet", "emerald", "onyx"];
+  const factions = Object.keys(FACTIONS).filter(f => f !== opts.faction);
   const players = [];
   players.push({
     control: "human",
@@ -2173,7 +2181,7 @@ export function makeSkirmish(opts) {
   });
   const used = new Set([players[0].hero]);
   for (let i = 1; i < map.players; i++) {
-    const fac = opts.opponents && opts.opponents[i - 1] ? opts.opponents[i - 1] : factions[i % 3];
+    const fac = opts.opponents && opts.opponents[i - 1] ? opts.opponents[i - 1] : factions[(i-1) % factions.length];
     const hero = ROSTER.find((r) => CLASSES[r.classId].faction === fac && !used.has(r.id)) || ROSTER.find((r) => !used.has(r.id));
     used.add(hero.id);
     players.push({

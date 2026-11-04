@@ -1,4 +1,5 @@
-import { CREATURES, GAME_VERSION, SKIRMISH, calendar } from "./data.js";
+import {researchEra, eraId, syncEra} from "./epochs.js";
+import { CREATURES, GAME_VERSION, SKIRMISH, ROSTER, CLASSES, FACTIONS, calendar } from "./data.js";
 import { scenarioById } from "./engine.js";
 import {
   aiAct, beginTurn, buildStructure, buyMachine, buySpellbook, castAdventure, chooseLevel,
@@ -164,7 +165,7 @@ function bindRanges() {
     const out = document.getElementById(id === "rec-n" ? "rec-out" : "dw-out");
     if (!range || !out || range.dataset.bound) continue;
     range.dataset.bound = "1";
-    const paint = () => { out.textContent = range.value; };
+    const paint = () => { const n=Number(range.value); const cost=JSON.parse(out.dataset.cost || "{}"); out.textContent = `${n} воительниц` + (Object.keys(cost).length ? " · Итого: " + Object.entries(cost).map(([k,v])=>`${Math.ceil(v*n)} ${ui.resourceName(k)}`).join(" · ") : ""); };
     range.addEventListener("input", paint);
     paint();
   }
@@ -647,6 +648,7 @@ async function runAI() {
       if (S.game.players[S.game.current].control === "human") break;
       continue;
     }
+    if (a.type === "research") { researchEra(S.game,a.townId); continue; }
     if (a.type === "build") { buildStructure(S.game, a.townId, a.buildingId); continue; }
     if (a.type === "recruit") { recruit(S.game, a.townId, a.creatureId, a.count, a.dest); continue; }
     if (a.type === "path") {
@@ -710,6 +712,20 @@ async function autosave() {
 async function onAct(actName, el) {
   const g = S.game;
   try {
+    if (actName === "research-era") {
+      const result=researchEra(g,el.dataset.town);toast(result.message||result.error);
+      S.modal={type:"hall",town:el.dataset.town};paintChrome();await autosave();return;
+    }
+    if (actName === "shop-card-build") {
+      const r=shopApply(g,{kind:"build",townId:el.dataset.town,buildingId:el.dataset.id});
+      toast(r.message||r.error);paintChrome();await autosave();return;
+    }
+    if (actName === "shop-card-unit") {
+      const heroId=document.getElementById("shop-hero")?.value;
+      const n=Number(document.getElementById("shop-n")?.value)||1;
+      const r=shopApply(g,{kind:"troops",heroId,creatureId:el.dataset.cr,count:n});
+      toast(r.message||r.error);syncEra(g,human().id);paintChrome();await autosave();return;
+    }
     if (actName === "campaign") { S.screen = "campaign"; renderScreen(); return; }
     if (actName === "shop-menu") { S.screen = "shop"; renderScreen(); return; }
     if (actName === "skirmish") { S.screen = "skirmish"; renderScreen(); return; }
@@ -741,14 +757,18 @@ async function onAct(actName, el) {
     if (actName === "continue") { await loadSlot("auto"); return; }
     if (actName === "start-camp") {
       const sc = scenarioById(el.dataset.id);
-      startGame(JSON.parse(JSON.stringify(sc)));
+      const spec=JSON.parse(JSON.stringify(sc));
+      const faction=document.querySelector('input[name="faction-choice"]:checked')?.value||"scarlet";
+      const others=Object.keys(FACTIONS).filter(f=>f!==faction);
+      spec.players.forEach((p,i)=>{p.faction=i===0?faction:others[(i-1)%others.length]; p.hero=ROSTER.find(r=>r.classId===p.faction+"_might").id;p.name=FACTIONS[p.faction].name;});
+      startGame(spec);
       return;
     }
     if (actName === "start-skirmish") {
       const map = SKIRMISH.find((m) => m.id === document.getElementById("sk-map").value);
       startGame(makeSkirmish({
         map,
-        faction: document.getElementById("sk-fac").value,
+        faction: document.querySelector('input[name="faction-choice"]:checked').value,
         role: document.getElementById("sk-role").value,
         difficulty: document.getElementById("sk-diff").value,
       }));

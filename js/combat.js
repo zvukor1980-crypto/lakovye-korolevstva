@@ -48,7 +48,7 @@ function rollInt(battle, a, b) {
 function abil(stack, name) {
   const cr = CREATURES[stack.cr];
   if (cr && cr.abilities && cr.abilities.includes(name)) return true;
-  if (name === "flying" && stack.buffs && stack.buffs.fly) return true;
+  if (name === "flying" && (cr?.flying || (stack.buffs && stack.buffs.fly))) return true;
   return false;
 }
 

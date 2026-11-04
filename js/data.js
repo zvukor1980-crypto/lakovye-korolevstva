@@ -1,6 +1,6 @@
 /** Статические данные «Лаковых королевств». Оригинальный мир, механика близкая к HoMM III. */
 
-export const GAME_VERSION = "1.8.1";
+export const GAME_VERSION = "2.0.0";
 
 export const RES_KEYS = ["gold", "lacquer", "resin", "pigment", "amber", "crystal", "pearl"];
 export const RES_NAME = {
@@ -183,7 +183,7 @@ export function baseCreatureId(id) {
 export function tiersOf(faction) {
   const list = [];
   for (let t = 1; t <= 7; t++) {
-    const base = Object.values(CREATURES).find((c) => c.faction === faction && c.tier === t && !c.upgradeOf);
+    const base = Object.values(CREATURES).find((c) => c.faction === faction && c.tier === t && !c.upgradeOf && !c.era);
     if (base) list.push(base);
   }
   return list;
@@ -486,6 +486,10 @@ export function buildingDef(faction, id) {
         : { name: "Чернильница", cost: { gold: 2500, pigment: 5 }, req: ["mage1"], desc: "Каждую неделю даёт чернильных искр и усиливает призыв." },
     grail: { name: "Алтарь короны", cost: { gold: 5000 }, req: ["capitol"], desc: "Нужна Корона Блеска. +5000 золота и +50% прироста.", needsGrail: true },
   };
+  if (faction === "inca") {
+    table.special={name:"Храм Инти",cost:{gold:2500,amber:5},req:["mage1"],desc:"+500 золота в день от солнечных террас."};
+    table.horde.name="Школа стражниц террас";
+  }
   const d = table[id];
   return d ? Object.assign({ id }, d) : null;
 }
@@ -616,6 +620,7 @@ export const SKIRMISH = [
 export const PLAYER_COLORS = ["#c4374f", "#1f8a5b", "#8b6bc4", "#d4a017", "#3a7bd5", "#d06b3a"];
 
 export function portraitFor(creatureId) {
+  if (CREATURES[creatureId]?.art) return CREATURES[creatureId].art;
   const base = String(creatureId).replace(/_u$/, "");
   const art = { s_champ: 0, e_bow: 1, o_bone: 2 };
   if (base in art) return `art/realistic/queen-${art[base]}.webp`;
@@ -642,3 +647,52 @@ export const FLAVOR_SIGNS = [
   "«Кто возьмёт Корону Блеска, тот откроет алтарь.»",
   "«Брод севернее безопасен, пока грифонши сыты.»",
 ];
+
+
+// Four playable peoples; historical elements belong to an alternate fantasy world.
+Object.assign(FACTIONS.scarlet, {name:"Люди Алого двора", blurb:"Стойкая пехота, сильная защита и воинская дисциплина."});
+Object.assign(FACTIONS.emerald, {name:"Лесные эльфийки", blurb:"Меткие стрелки, быстрые разведчицы и магия природы."});
+Object.assign(FACTIONS.onyx, {name:"Тёмные эльфийки", blurb:"Ночные воительницы, проклятия и ударные отряды."});
+FACTIONS.inca = {id:"inca", name:"Солнечные инки", epithet:"Двор Солнца", town:"Золотая терраса", blurb:"Фэнтезийный народ, вдохновлённый инками: солнечные жрицы, пращницы и стража Анд.", color:"#22b8bd", deep:"#123a40", gold:"#f2ce73", castle:"art/castle-emerald.jpg"};
+export const ERAS = [
+  {id:0, name:"Древность", day:1, desc:"Копья, луки, солнечные храмы и первые города.", cost:{}, req:[]},
+  {id:1, name:"Средневековье", day:8, desc:"Более сильные войска, арбалеты и лаковые доспехи. Все ваши отряды получают новое снаряжение.", cost:{gold:6000, lacquer:12, resin:8}, req:["townHall","blacksmith"]},
+  {id:2, name:"Современность", day:22, desc:"Современные командирши и стрелки, усиленная броня, огнестрельное оружие у стрелковых отрядов.", cost:{gold:16000, lacquer:20, crystal:10}, req:["cityHall","mage2"]},
+];
+export const FACTION_ORDER = ["scarlet","emerald","onyx","inca"];
+export function eraArt(faction, era=0, role=0) { return `art/epochs/${["ancient","medieval","modern"][Math.max(0,Math.min(2,era))]}-${FACTION_ORDER.indexOf(faction)}-${role % 3}.webp`; }
+for (const role of ["might","magic"]) {
+  const src=CLASSES["emerald_"+role];
+  CLASSES["inca_"+role]={...src,id:"inca_"+role,faction:"inca",name:role==="might"?"Стражница Солнца":"Жрица Солнца"};
+}
+const incaNames=["Копейщица Анд","Пращница Солнца","Стражница террас","Воительница пумы","Жрица Инти","Золотая гвардия","Избранница Солнца"];
+for (const source of [...Object.values(CREATURES)].filter(c=>c.faction==="emerald")) {
+  const id=source.id.replace(/^e_/,"i_");
+  CREATURES[id]={...source,id,faction:"inca",name:(source.upgradeOf?"Старшая ":"")+incaNames[source.tier-1],
+    levelUpTo:source.levelUpTo?.replace(/^e_/,"i_"),upgradeOf:source.upgradeOf?.replace(/^e_/,"i_"),
+    desc:"Воительница солнечного народа. "+source.desc, cost:{...source.cost},abilities:[...source.abilities]};
+}
+START_ARMIES.inca_might=[["i_dew",16],["i_bow",8],["i_uni",3]];
+START_ARMIES.inca_magic=[["i_dew",12],["i_bow",9]];
+for(const [i,name] of ["Килья","Амару","Часка"].entries()) ROSTER.push({id:"inca-"+i,name,classId:"inca_"+(i===1?"magic":"might"),portrait:eraArt("inca",0,i)});
+for(const f of FACTION_ORDER) {
+ const roster=ROSTER.filter(r=>CLASSES[r.classId].faction===f);
+ roster.forEach((r,i)=>{r.portrait=eraArt(f,0,i%3);});
+}
+const modernNames=["Разведчица","Штурмовичка","Стрелок","Гвардейка","Снайперша","Командирша","Элитная воительница"];
+for(const source of [...Object.values(CREATURES)].filter(c=>FACTION_ORDER.includes(c.faction))) {
+ source.art=eraArt(source.faction,0,(source.tier-1)%3);
+ for(const era of [1,2]) {
+  const id=source.id+"@"+era, factor=era===1?1.3:1.7;
+  CREATURES[id]={...source,id,era,originalId:source.id,
+   name:(era===1?"Доспешная ":"")+(era===2?modernNames[source.tier-1]+(source.upgradeOf?" • элита":""):source.name),
+   art:eraArt(source.faction,era,(source.tier-1)%3),
+   levelUpTo:source.levelUpTo?source.levelUpTo+"@"+era:undefined,
+   upgradeOf:source.upgradeOf?source.upgradeOf+"@"+era:undefined,
+   atk:source.atk+era*3, def:source.def+era*3, hp:Math.round(source.hp*factor),
+   min:Math.max(1,Math.round(source.min*factor)), max:Math.round(source.max*factor),
+   shots:source.ranged?Math.max(source.shots,era===2?30:18):source.shots,
+   cost:Object.fromEntries(Object.entries(source.cost).map(([k,v])=>[k,Math.ceil(v*(1+era*.2))])),
+   desc:ERAS[era].name+". "+source.desc};
+ }
+}
