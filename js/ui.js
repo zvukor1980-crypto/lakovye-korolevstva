@@ -196,17 +196,16 @@ export function topHTML(game) {
   const p = game.players[game.current];
   const cal = calendar(game.day);
   const you = p.control === "human";
-  return `<div class="dayline">
-      <strong>${esc(cal.label)}</strong>
-      <span>${esc(cal.dayName)}${you ? "" : " · " + esc(p.name)}</span>
-      <button class="btn icon" data-act="open-system" aria-label="Меню"></button>
-    </div>
-    <div class="resbar">${resourcesHTML(p.resources)}</div>`;
+  return `<div class="woodtop">
+      <div class="dayline"><strong>${esc(cal.label)}</strong><span>${esc(cal.dayName)}${you ? "" : " · " + esc(p.name)}</span>
+        <button class="btn icon" data-act="open-system" aria-label="Меню"></button>
+      </div>
+      <div class="resbar">${resourcesHTML(p.resources)}</div>
+    </div>`;
 }
 
 export function dockHTML(game, hero, mode, flags = {}) {
   if (mode === "battle" || mode === "deploy") return battleDock(game, mode, flags);
-  const sub = hero ? `ход ${hero.movement} · мана ${hero.mana}/${maxMana(hero)}` : "нет героини";
   const img = hero ? hero.portrait : "icons/icon-192.png";
   const nm = hero ? hero.name : "—";
   let coach = "";
@@ -215,12 +214,28 @@ export function dockHTML(game, hero, mode, flags = {}) {
       coach = `<div class="coach"><span>Коснитесь клетки — героиня пойдёт. «Ход» отдаёт день.</span><button class="btn small" data-act="dismiss-coach">Ясно</button></div>`;
     }
   } catch { /* хранилище недоступно */ }
-  return `${coach}<p class="orb-caption">${esc(nm)} · ${esc(sub)} <button class="btn small" data-act="next-hero">Дальше</button></p>
-    <div class="orb-row">
-      <button class="orb" data-act="open-hero" aria-label="Героиня"><img src="${esc(img)}" alt=""><span>Героиня</span></button>
-      <button class="orb" data-act="open-town" aria-label="Город"><span class="glyph">⌂</span><span>Город</span></button>
-      <button class="orb" data-act="open-spell" aria-label="Книга"><span class="glyph">✦</span><span>Книга</span></button>
-      <button class="orb gold" data-act="end-turn" aria-label="Ход"><span class="glyph">♛</span><span>Ход</span></button>
+  const e = hero ? effective(hero) : null;
+  const dots = (n) => {
+    const v = Math.max(0, Math.min(3, n || 0));
+    return "●".repeat(v) + "○".repeat(3 - v);
+  };
+  return `${coach}<div class="herobar">
+      <button class="herobar-port" data-act="open-hero" aria-label="Героиня"><img src="${esc(img)}" alt=""></button>
+      <div class="herobar-text">
+        <b>${esc(nm)}</b>
+        <div>${hero ? esc(FACTIONS[hero.faction].name) + " · ур. " + hero.level : ""}</div>
+        <div>Ход ${hero ? hero.movement : 0} · Мана ${hero ? hero.mana + "/" + maxMana(hero) : "—"}</div>
+        <div>Мораль ${e ? dots(e.morale) : "—"} · Удача ${e ? dots(e.luck) : "—"}</div>
+      </div>
+      <button class="btn small" data-act="next-hero">Дальше</button>
+    </div>
+    <div class="cmdbar">
+      <button class="cmd" data-act="end-turn"><b>⚑</b>Ход</button>
+      <button class="cmd" data-act="open-hero"><b>♛</b>Герой</button>
+      <button class="cmd" data-act="open-town"><b>⌂</b>Замок</button>
+      <button class="cmd" data-act="open-overview"><b>◉</b>Царство</button>
+      <button class="cmd" data-act="open-spell"><b>✦</b>Книга</button>
+      <button class="cmd" data-act="open-quest"><b>✦</b>Цель</button>
     </div>`;
 }
 
@@ -699,6 +714,17 @@ export function overviewHTML(game) {
   return `<div class="modal-back"><div class="sheet"><header class="sheeth"><h2>Королевство</h2><button class="btn small ghost" data-act="close-modal">Закрыть</button></header>
     <div class="body"><h3>Героини</h3><div class="stack">${heroes}</div><h3>Города</h3><div class="stack">${towns}</div>
     <h3>Журнал</h3>${game.log.slice(-8).map((l) => `<div class="muted">${esc(l.text)}</div>`).join("")}
+    </div></div></div>`;
+}
+
+export function questHTML(game) {
+  const goal = (game.victory && game.victory.type === "grail")
+    ? "Найдите святыню и поставьте её в город."
+    : "Погасите все чужие знамёна.";
+  const lines = (game.log || []).slice(-6).map((l) => `<p class="muted">${esc(l.text)}</p>`).join("");
+  return `<div class="modal-back"><div class="sheet"><header class="sheeth"><h2>Цель</h2><button class="btn small ghost" data-act="close-modal">Закрыть</button></header>
+    <div class="body stack">${voiceHTML("Кастелянша Лира", goal)}${lines}
+      <button class="btn" data-act="close-modal">В путь</button>
     </div></div></div>`;
 }
 

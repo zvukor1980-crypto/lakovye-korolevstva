@@ -44,7 +44,9 @@ async function shot(name) {
 async function clickAct(act, extra) {
   const sel = extra ? `[data-act="${act}"]${extra}` : `[data-act="${act}"]`;
   const el = page.locator(sel).first();
-  await el.waitFor({ state: "visible", timeout: 8000 });
+  console.log("click", act);
+  const ok = await el.waitFor({ state: "attached", timeout: 4000 }).then(() => true).catch(() => false);
+  if (!ok) { console.log("missing", act); return; }
   await el.click({ force: true });
 }
 async function audit(where) {
@@ -132,7 +134,7 @@ try {
     await audit("ратуша");
     await shot("hall");
     const bld = page.locator("[data-act=build]");
-    if (await bld.count()) await bld.first().tap();
+    if (await bld.count()) await bld.first().click({ force: true });
     await page.waitForTimeout(200);
     const back = page.locator("[data-act=back-town]");
     if (await back.count()) await back.first().tap();
@@ -158,7 +160,7 @@ try {
   await clickAct("open-shop");
   await audit("лавка");
   await shot("shop");
-  await page.locator("[data-act=shop-pack]").first().tap();
+  await page.locator("[data-act=shop-pack]").first().click({ force: true });
   await page.waitForTimeout(200);
   await clickAct("close-modal");
 

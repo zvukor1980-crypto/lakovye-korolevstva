@@ -11,8 +11,8 @@ import {
   SPR, bodySrc, drawClouds, drawFigure, drawGround, drawRiver, groundSrc, imageSync as painted, preloadWorld, prime as primeArt, rideSrc, torch,
 } from "./visual.js";
 
-export const TW = 96;
-export const TH = 48;
+export const TW = 64;
+export const TH = 32;
 
 const images = new Map();
 export function preload(src) {
@@ -160,18 +160,65 @@ export function screenToTile(sx, sy, cam, w, h) {
 
 function toScreen(wx, wy, cam, w, h) {
   return {
-    x: (wx - cam.x) * cam.zoom + w / 2,
-    y: (wy - cam.y) * cam.zoom + h / 2,
+    x: Math.round((wx - cam.x) * cam.zoom + w / 2),
+    y: Math.round((wy - cam.y) * cam.zoom + h / 2),
   };
+}
+
+const TILE_INK = {
+  [T_GRASS]: ["#3f8a34", "#2f6d28", "#67a84a"],
+  [T_FOREST]: ["#2f7a30", "#1f5c22", "#4e9a3c"],
+  [T_HILL]: ["#6a8a3a", "#4d6a28", "#8aaa52"],
+  [T_DIRT]: ["#a78448", "#8a6840", "#c4a060"],
+  [T_SAND]: ["#d2b56a", "#c4a25a", "#e6d090"],
+  [T_SNOW]: ["#e7eef2", "#d5dee6", "#f7fbfd"],
+  [T_SWAMP]: ["#3d6840", "#2a4a30", "#5a7848"],
+  [T_WATER]: ["#2f78b0", "#1d5e90", "#7ec8ea"],
+  [T_MOUNTAIN]: ["#8b9098", "#5c636c", "#c5ccd4"],
+  [T_LAVA]: ["#8a3018", "#5a180c", "#e07030"],
+};
+
+function paintIso(ctx, type, dw, dh, x, y) {
+  const cols = TILE_INK[type] || TILE_INK[T_GRASS];
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(0, -(dh + 6) / 2);
+  ctx.lineTo((dw + 6) / 2, 0);
+  ctx.lineTo(0, (dh + 6) / 2);
+  ctx.lineTo(-(dw + 6) / 2, 0);
+  ctx.closePath();
+  ctx.clip();
+  ctx.fillStyle = cols[0];
+  ctx.fillRect(-dw - 4, -dh - 4, dw * 2 + 8, dh * 2 + 8);
+  ctx.restore();
+}
+
+export function clampCamera(cam, state, viewW, viewH) {
+  if (!state || !state.map) return;
+  const z = Math.max(0.8, Math.min(cam.zoom, 2));
+  cam.zoom = z;
+  const halfW = viewW / 2 / z;
+  const halfH = viewH / 2 / z;
+  const pts = [
+    tileCenter(0, 0),
+    tileCenter(state.map.w - 1, 0),
+    tileCenter(0, state.map.h - 1),
+    tileCenter(state.map.w - 1, state.map.h - 1),
+  ];
+  const minX = Math.min(...pts.map((p) => p.x)) - TW;
+  const maxX = Math.max(...pts.map((p) => p.x)) + TW;
+  const minY = Math.min(...pts.map((p) => p.y)) - TH;
+  const maxY = Math.max(...pts.map((p) => p.y)) + TH;
+  if (maxX - minX <= halfW * 2) cam.x = (minX + maxX) / 2;
+  else cam.x = Math.min(maxX - halfW, Math.max(minX + halfW, cam.x));
+  if (maxY - minY <= halfH * 2) cam.y = (minY + maxY) / 2;
+  else cam.y = Math.min(maxY - halfH, Math.max(minY + halfH, cam.y));
 }
 
 export function drawMap(ctx, state, view) {
   const { cam, w, h, time, playerId, path, selectedId } = view;
   ctx.clearRect(0, 0, w, h);
-  const sky = ctx.createLinearGradient(0, 0, 0, h);
-  sky.addColorStop(0, "#1a0d12");
-  sky.addColorStop(1, "#070304");
-  ctx.fillStyle = sky;
+  ctx.fillStyle = "#2f6d28";
   ctx.fillRect(0, 0, w, h);
 
   const margin = 3;
@@ -199,34 +246,20 @@ export function drawMap(ctx, state, view) {
     const c = tileCenter(x, y);
     const s = toScreen(c.x, c.y, cam, w, h);
     const dw = TW * cam.zoom, dh = TH * cam.zoom;
+    ctx.save();
+    ctx.translate(s.x, s.y);
     if (!seen) {
-      drawDiamond(ctx, s.x, s.y, dw + 1.2, dh + 1.2, "#000");
+      paintIso(ctx, T_GRASS, dw, dh, x, y);
+      ctx.globalAlpha = 0.72;
+      drawDiamond(ctx, 0, 0, dw + 2, dh + 2, "#10210f");
+      ctx.restore();
       continue;
     }
     const type = state.map.terrain[i];
-    const gsrc = groundSrc(type, x, y);
-    primeArt(gsrc);
-    const gimg = painted(gsrc);
-    ctx.save();
-    ctx.translate(s.x, s.y);
-    if (!drawGround(ctx, gimg, dw, dh, type, time, x, y)) {
-      const sprite = tileCanvas(type, (x * 3 + y * 5) % 3);
-      ctx.drawImage(sprite, -dw / 2 - 0.6, -dh / 2 - 0.6, dw + 1.2, dh + 1.2);
-    }
+    paintIso(ctx, type, dw, dh, x, y);
     const flags = state.map.flags[i];
-    if (flags & FLAG_ROAD && type !== T_WATER && type !== T_MOUNTAIN) {
-      primeArt("art/tiles/road.jpg");
-      const road = painted("art/tiles/road.jpg");
-      if (road) {
-        ctx.save();
-        ctx.globalAlpha = 0.92;
-        drawGround(ctx, road, dw * 0.78, dh * 0.42, T_DIRT, time, x, y);
-        ctx.restore();
-      } else paintRoad(ctx, dw, dh);
-    }
+    if (flags & FLAG_ROAD && type !== T_WATER && type !== T_MOUNTAIN) paintRoad(ctx, dw, dh);
     if (flags & FLAG_RIVER) drawRiver(ctx, dw, dh, time, flags & FLAG_FORD);
-    if (type === T_WATER && !gimg) paintWaterShine(ctx, dw, dh, time, x, y);
-    if (type === T_GRASS || type === T_DIRT) drawTuft(ctx, dw, dh, x, y, type);
     ctx.restore();
     if (type === T_FOREST || type === T_HILL) drawForestSprite(ctx, s.x, s.y, cam.zoom, time, x, y, type);
     if (type === T_MOUNTAIN) drawPeak(ctx, s.x, s.y, cam.zoom, time, x);
@@ -247,12 +280,7 @@ export function drawMap(ctx, state, view) {
   props.sort((a, b) => a.k - b.k);
   for (const p of props) p.draw();
 
-  drawClouds(ctx, w, h, time);
-  const vg = ctx.createRadialGradient(w / 2, h / 2, h * 0.2, w / 2, h / 2, h * 0.72);
-  vg.addColorStop(0, "rgba(0,0,0,0)");
-  vg.addColorStop(1, "rgba(0,0,0,.28)");
-  ctx.fillStyle = vg;
-  ctx.fillRect(0, 0, w, h);
+  drawInsetMap(ctx, state, playerId, w, h);
 }
 
 function drawTuft(ctx, dw, dh, x, y, type) {
@@ -377,6 +405,36 @@ export function drawMinimap(canvas, state, playerId, cam, viewW, viewH) {
   }
 }
 
+function drawInsetMap(ctx, state, playerId, w, h) {
+  const mw = state.map.w, mh = state.map.h;
+  const W = 78, H = 64, x0 = w - W - 8, y0 = 8;
+  ctx.save();
+  ctx.fillStyle = "#1a120c";
+  ctx.fillRect(x0 - 3, y0 - 3, W + 6, H + 6);
+  ctx.strokeStyle = "#e6c878";
+  ctx.lineWidth = 2;
+  ctx.strokeRect(x0 - 3, y0 - 3, W + 6, H + 6);
+  const cols = ["#3f8a34", "#a78448", "#d2b56a", "#e7eef2", "#3d6840", "#8a3018", "#6a8a3a", "#2f7a30", "#2f78b0", "#8b9098"];
+  const tw = W / mw, th = H / mh;
+  for (let y = 0; y < mh; y++) for (let x = 0; x < mw; x++) {
+    if (!remembered(state, playerId, x, y)) continue;
+    ctx.fillStyle = cols[state.map.terrain[y * mw + x]] || "#333";
+    ctx.fillRect(x0 + x * tw, y0 + y * th, tw + 0.6, th + 0.6);
+  }
+  for (const t of state.towns) {
+    if (!remembered(state, playerId, t.x, t.y)) continue;
+    const owner = state.players.find((p) => p.id === t.owner);
+    ctx.fillStyle = owner ? owner.color : "#e6c878";
+    ctx.fillRect(x0 + t.x * tw - 1, y0 + t.y * th - 1, 3, 3);
+  }
+  for (const hr of state.heroes) {
+    if (hr.lost || !remembered(state, playerId, hr.x, hr.y)) continue;
+    ctx.fillStyle = state.players[hr.player].color;
+    ctx.fillRect(x0 + hr.x * tw, y0 + hr.y * th, 2.5, 2.5);
+  }
+  ctx.restore();
+}
+
 function drawDiamond(ctx, x, y, dw, dh, fill) {
   ctx.beginPath();
   ctx.moveTo(x, y - dh / 2);
@@ -485,12 +543,12 @@ function drawMountain(ctx, x, y, z) {
 
 function drawTown(ctx, state, town, cam, w, h, time) {
   const c = tileCenter(town.x, town.y);
-  const s = toScreen(c.x, c.y - 4, cam, w, h);
+  const s = toScreen(c.x, c.y, cam, w, h);
   const fac = FACTIONS[town.faction];
   const src = SPR.castle[town.faction] || fac.castle;
   primeArt(src);
   const img = painted(src);
-  const bh = 132 * cam.zoom;
+  const bh = 70 * cam.zoom;
   const owner = state.players.find((p) => p.id === town.owner);
   ctx.save();
   ctx.translate(s.x, s.y);
@@ -518,7 +576,7 @@ const OBJ_GLYPH = {
 
 function drawObject(ctx, state, obj, cam, w, h) {
   const c = tileCenter(obj.x, obj.y);
-  const s = toScreen(c.x, c.y - 4, cam, w, h);
+  const s = toScreen(c.x, c.y, cam, w, h);
   const z = cam.zoom;
   ctx.save();
   ctx.translate(s.x, s.y);
@@ -634,7 +692,7 @@ function drawToken(ctx, img, x, y, r, ring, badge) {
 function drawHero(ctx, state, hero, cam, w, h, time, selected) {
   const bob = Math.sin(time / 280 + hero.id) * 2 * cam.zoom;
   const c = tileCenter(hero.x, hero.y);
-  const s = toScreen(c.x, c.y - 6, cam, w, h);
+  const s = toScreen(c.x, c.y, cam, w, h);
   const z = cam.zoom;
   const src = rideSrc(hero.rosterId);
   primeArt(src);
@@ -650,7 +708,7 @@ function drawHero(ctx, state, hero, cam, w, h, time, selected) {
     ctx.ellipse(0, 6 * z, 18 * z, 7 * z, 0, 0, Math.PI * 2);
     ctx.stroke();
   }
-  if (img && painted(src)) drawFigure(ctx, img, 0, 12 * z, 62 * z, time, { seed: hero.id, bob: 2.2, sway: 0.03 });
+  if (img && painted(src)) drawFigure(ctx, img, 0, 2 * z, 48 * z, time, { seed: hero.id, bob: 1.2, sway: 0.02 });
   else drawToken(ctx, img, 0, -16 * z, 16 * z, fac.color, "");
   drawPennant(ctx, 18 * z, -46 * z, z, state.players[hero.player].color);
   ctx.restore();

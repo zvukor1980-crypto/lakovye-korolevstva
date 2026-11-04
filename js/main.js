@@ -12,7 +12,7 @@ import {
   reachable, startFight,
 } from "./combat.js";
 import {
-  battleCamera, drawBattle, drawMap, drawMinimap, focusHex, preloadFactionArt, screenToHex, screenToTile, tileCenter,
+  battleCamera, clampCamera, drawBattle, drawMap, focusHex, preloadFactionArt, screenToHex, screenToTile, tileCenter,
 } from "./render.js";
 import * as ui from "./ui.js";
 import * as saves from "./save.js";
@@ -190,6 +190,7 @@ function modalHTML(m) {
   if (m.type === "dwell") return ui.dwellingHTML(S.game, heroById(S.game, m.heroId), m.obj);
   if (m.type === "trade") return ui.tradeHTML(S.game);
   if (m.type === "overview") return ui.overviewHTML(S.game);
+  if (m.type === "quest") return ui.questHTML(S.game);
   if (m.type === "end") return ui.endHTML(m.end);
   if (m.type === "brief") return ui.briefHTML(S.game);
   if (m.type === "split") return ui.splitHTML(m.id);
@@ -239,9 +240,8 @@ function frame(t) {
       }
       drawBattle(ctx, S.game.battle, { ...view, cam: bcam, reach, currentUid: cur && cur.uid, fx: S.fx });
     } else {
+      clampCamera(S.cam, S.game, rect.width, rect.height);
       drawMap(ctx, S.game, view);
-      const mm = document.getElementById("minimap");
-      if (mm) drawMinimap(mm, S.game, human().id, S.cam, rect.width, rect.height);
     }
     const now = performance.now();
     for (const id of Object.keys(S.fx)) if (now - S.fx[id].t0 > 900) delete S.fx[id];
@@ -686,7 +686,7 @@ function startGame(spec) {
   S.modal = { type: "brief" };
   S.seenWeek = S.game.day;
   S.selected = S.game.heroes.find((h) => h.player === human().id && !h.lost)?.id || null;
-  S.cam = { x: 0, y: 0, zoom: 1.5 };
+  S.cam = { x: 0, y: 0, zoom: 1.35 };
   const h = selectedHero();
   if (h) focus(h);
   renderScreen();
@@ -811,6 +811,7 @@ async function onAct(actName, el) {
     if (actName === "dismiss-coach") { localStorage.setItem("lk-coach", "1"); paintChrome(); return; }
     if (actName === "open-system") { S.modal = { type: "system" }; paintChrome(); return; }
     if (actName === "open-overview") { S.modal = { type: "overview" }; paintChrome(); return; }
+    if (actName === "open-quest") { S.modal = { type: "quest" }; paintChrome(); return; }
     if (actName === "open-save") { S.slots = await saves.listSaves(); S.modal = { type: "save" }; paintChrome(); return; }
     if (actName === "to-menu") { S.screen = "menu"; S.modal = null; S.mode = "map"; S.slots = await saves.listSaves(); renderScreen(); return; }
     if (actName === "write-slot") {
