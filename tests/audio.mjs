@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
-const events={};let oscillators=[],spoken=[],intervals=new Set();
+const contexts=[];const events={};let oscillators=[],spoken=[],intervals=new Set();
 globalThis.document={hidden:false,addEventListener:(n,f)=>events[n]=f};
 globalThis.setInterval=f=>{intervals.add(f);return f;};globalThis.clearInterval=f=>intervals.delete(f);
 const param=()=>({value:0,setValueAtTime(){},exponentialRampToValueAtTime(){},setTargetAtTime(){}});
-class AC {state='running';currentTime=0;destination={};createGain(){return {gain:param(),connect(){},disconnect(){}};}createOscillator(){const o={frequency:param(),detune:param(),connect(){},disconnect(){},start(){},stop(){this.stopped=true;}};oscillators.push(o);return o;}suspend(){this.state='suspended';return Promise.resolve();}resume(){this.state='running';return Promise.resolve();}}
+class AC {constructor(){contexts.push(this);}state='running';currentTime=0;destination={};createGain(){return {gain:param(),connect(){},disconnect(){}};}createOscillator(){const o={frequency:param(),detune:param(),connect(){},disconnect(){},start(){},stop(){this.stopped=true;}};oscillators.push(o);return o;}suspend(){this.state='suspended';return Promise.resolve();}resume(){this.state='running';return Promise.resolve();}}
 globalThis.window={AudioContext:AC,speechSynthesis:{getVoices:()=>[{lang:'ru-RU'}],cancel(){},speak:u=>spoken.push(u)}};
 globalThis.SpeechSynthesisUtterance=class{constructor(text){this.text=text;}};
 const m=await import('../js/music.js');
@@ -11,6 +11,8 @@ m.ensureMusic(true,.4);assert.equal(intervals.size,1);assert.ok(oscillators.leng
 m.ensureMusic(true,.3);assert.equal(intervals.size,1,'Repeated taps must not duplicate schedulers');
 document.hidden=true;events.visibilitychange();assert.equal(intervals.size,0);
 document.hidden=false;events.visibilitychange();await Promise.resolve();assert.equal(intervals.size,1);
+contexts[0].state='interrupted';await m.ensureMusic(true,.4);assert.equal(contexts[0].state,'running','Recover interrupted iOS audio');
+contexts[0].currentTime=10000;const before=oscillators.length;for(const run of intervals)run();assert.ok(oscillators.length-before<50,'Do not schedule hours of stale notes after interruption');
 m.stopMusic();assert.equal(intervals.size,0);assert.ok(oscillators.every(o=>o.stopped));
 m.configureVoice(false);m.speak('Нет',true);assert.equal(spoken.length,0);
 m.configureVoice(true);m.speak('Поход начинается',true);assert.equal(spoken.length,1);assert.equal(spoken[0].lang,'ru-RU');

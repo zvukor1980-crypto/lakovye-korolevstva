@@ -269,7 +269,7 @@ function ensureTerrain(state) {
       const type = state.map.terrain[i];
       const flags = state.map.flags[i];
       const road = (flags & FLAG_ROAD) && type !== T_WATER && type !== T_MOUNTAIN && type !== T_LAVA;
-      const use = road ? T_DIRT : type;
+      const use = type;
       if (use !== T_GRASS && use !== T_FOREST && use !== T_HILL && use !== T_SWAMP) {
         const img = painted(PAINT[use] || PAINT[T_GRASS]);
         if (img) stampWrap(g, img, x * S, y * S, S + 1, x * S, y * S);
@@ -279,6 +279,19 @@ function ensureTerrain(state) {
         g.fillStyle = flags & FLAG_FORD ? "rgba(196,228,244,.8)" : "rgba(36,112,176,.92)";
         g.fillRect(x * S + 16, y * S, 16, S);
       }
+    }
+  }
+  // Quiet the high-frequency ground texture; connected paths replace square road tiles.
+  g.fillStyle='rgba(24,58,45,.18)';g.fillRect(0,0,canvas.width,canvas.height);
+  const roadAt=(x,y)=>x>=0&&y>=0&&x<mw&&y<mh&&(state.map.flags[y*mw+x]&FLAG_ROAD)&&![T_WATER,T_MOUNTAIN,T_LAVA].includes(state.map.terrain[y*mw+x]);
+  for(let y=0;y<mh;y++)for(let x=0;x<mw;x++){
+    if(!roadAt(x,y))continue;
+    const cx=(x+.5)*S,cy=(y+.5)*S;
+    for(const [width,color] of [[23,'#6d7654'],[17,'#c4af7c'],[9,'#d5c399']]){
+      g.strokeStyle=color;g.lineWidth=width;g.lineCap='round';g.lineJoin='round';
+      g.beginPath();g.moveTo(cx,cy);g.lineTo(cx+.1,cy);
+      for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1]])if(roadAt(x+dx,y+dy)){g.moveTo(cx,cy);g.lineTo(cx+dx*S/2,cy+dy*S/2);}
+      g.stroke();
     }
   }
   terrainBake = { key, canvas, S, map:state.map };

@@ -19,6 +19,7 @@ function note(n,t,d,v,kind='harp') {
 function schedule(){
  if(!enabled||!ctx||ctx.state!=='running')return;
  const beat=scene==='battle'?.29:.43;
+ if(next<ctx.currentTime-.5)next=ctx.currentTime+.04;
  while(next<ctx.currentTime+.18){
   const chord=chords[Math.floor(step/8)%4],i=step%8;
   note(chord[[0,1,2,3,2,1,3,1][i]]+12,next,1.1,.045,'harp');
@@ -34,12 +35,13 @@ export function ensureMusic(on,volume=.4){
  if(!enabled){stopMusic();return;}
  if(document.hidden)return;
  try{
-  const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
+  const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return false;
   if(!ctx){ctx=new AC();master=ctx.createGain();master.connect(ctx.destination);}
-  master.gain.setTargetAtTime(level,ctx.currentTime,.1);
+  master.gain.setTargetAtTime(level*2.2,ctx.currentTime,.1);
   const start=()=>{if(!enabled||document.hidden)return;if(!timer){next=ctx.currentTime+.04;timer=setInterval(schedule,100);schedule();}};
-  if(ctx.state==='suspended')ctx.resume().then(start).catch(()=>{});else start();
- }catch{/* Audio is optional. */}
+  if(ctx.state!=='running')return ctx.resume().then(()=>{start();return ctx.state==='running';}).catch(()=>false);
+  start();return ctx.state==='running';
+ }catch{return false;}
 }
 export function stopMusic(){
  enabled=false;clearInterval(timer);timer=null;

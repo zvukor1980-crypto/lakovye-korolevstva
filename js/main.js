@@ -148,7 +148,16 @@ function paintChrome() {
   const mm = document.getElementById("minimap");
   if (mm) mm.classList.toggle("hidden", S.mode === "battle" || S.mode === "deploy");
   const modal = document.getElementById("modal");
+  const same=modal.dataset.kind===S.modal?.type&&['shop','hall'].includes(S.modal?.type);
+  const kept=same?{hero:modal.querySelector('#shop-hero')?.value,n:modal.querySelector('#shop-n')?.value,open:[...modal.querySelectorAll('details')].map(e=>e.open),scroll:modal.querySelector('.body')?.scrollTop,filter:modal.querySelector('[data-filter][aria-pressed="true"]')?.dataset.filter}:null;
   modal.innerHTML = S.modal ? modalHTML(S.modal) : "";
+  modal.dataset.kind=S.modal?.type||'';
+  if(kept){
+    for(const [id,value] of [['shop-hero',kept.hero],['shop-n',kept.n]]){const input=modal.querySelector('#'+id);if(input&&value!=null)input.value=value;}
+    [...modal.querySelectorAll('details')].forEach((e,i)=>e.open=!!kept.open[i]);
+    if(kept.filter){const b=modal.querySelector('[data-filter="'+kept.filter+'"]');if(b)onAct('commerce-filter',b);}
+    const body=modal.querySelector('.body');if(body)body.scrollTop=kept.scroll||0;
+  }
   if (S.armFrom) {
     const btn = modal.querySelector(`[data-act="army"][data-which="${S.armFrom.which}"][data-i="${S.armFrom.i}"]`);
     if (btn) btn.classList.add("on");
@@ -784,6 +793,20 @@ async function onAct(actName, el) {
       }));
       return;
     }
+    if (actName === "commerce-filter") {
+      const sheet=el.closest('.commerce-sheet');
+      for(const b of sheet.querySelectorAll('[data-act="commerce-filter"]'))b.setAttribute('aria-pressed',String(b===el));
+      let count=0;
+      for(const card of sheet.querySelectorAll('[data-building-card]')){const show=el.dataset.filter==='all'||card.dataset[el.dataset.filter]==='true';card.hidden=!show;if(show)count++;}
+      sheet.querySelector('.filter-status').textContent=count?'Показано зданий: '+count:'Сейчас таких зданий нет. Выберите другую категорию.';
+      return;
+    }
+    if (actName === "test-music") {
+      S.settings.music=true;S.settings.volume=Math.max(.35,Number(document.getElementById('set-volume').value)/100);
+      document.getElementById('set-music').value='on';document.getElementById('set-volume').value=Math.round(S.settings.volume*100);
+      const ok=await ensureMusic(true,S.settings.volume);localStorage.setItem('lk-settings',JSON.stringify(S.settings));
+      toast(ok?'Музыка включена. Если не слышно — проверьте громкость iPhone.':'Звук заблокирован браузером. Нажмите «Включить музыку» ещё раз.');return;
+    }
     if (actName === "check-update") {
       const old=el.textContent;el.disabled=true;el.textContent="Проверяем…";
       try { if(checkUpdates)await checkUpdates(true);else toast("Проверка ещё запускается. Повторите через несколько секунд."); }
@@ -800,7 +823,7 @@ async function onAct(actName, el) {
       S.settings.volume=Number(document.getElementById("set-volume").value)/100;
       S.settings.voice=document.getElementById("set-voice").value==="on";
       S.settings.effects=document.getElementById("set-effects").value!=="off";
-      ensureMusic(S.settings.sound!==false&&S.settings.music!==false,S.settings.volume);
+      ensureMusic(S.settings.music!==false,S.settings.volume);
       configureVoice(S.settings.sound!==false&&S.settings.voice);
       document.body.classList.toggle("quiet-world",!S.settings.effects);
       S.settings.fast = document.getElementById("set-fast").value === "1";
@@ -1213,11 +1236,16 @@ document.body.addEventListener("pointerdown", () => {
   try {
     if (S.audio && S.audio.state === "suspended") S.audio.resume().catch(() => {});
   } catch { /* нет устройства */ }
-  if (S.settings.sound === false) return;
   ensureMusic(S.settings.music!==false,S.settings.volume??.4);
   configureVoice(S.settings.voice);
 }, { once: false });
 
+document.body.addEventListener('change',e=>{
+ if(!['set-music','set-volume'].includes(e.target.id))return;
+ S.settings.music=document.getElementById('set-music').value!=='off';
+ S.settings.volume=Number(document.getElementById('set-volume').value)/100;
+ ensureMusic(S.settings.music,S.settings.volume);localStorage.setItem('lk-settings',JSON.stringify(S.settings));
+});
 let checkUpdates;
 
 boot();
