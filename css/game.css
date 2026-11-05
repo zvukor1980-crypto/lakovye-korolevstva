@@ -821,7 +821,7 @@ hr.sep { border: 0; border-top: 1px solid rgba(231,197,106,.18); margin: 8px 0; 
 
 .bld-row .building-thumb { float:left; width:64px; height:76px; object-fit:contain; margin-right:12px; }
 /* Dawn edition: quiet cinematic artwork, accessible controls, no video downloads. */
-.menu-lux { position:relative; isolation:isolate; background:linear-gradient(180deg,rgba(5,22,29,.15),transparent 40%,rgba(5,15,20,.88) 80%),url('../art/world/menu-dawn.webp') center 38% / cover no-repeat; }
+.menu-lux { position:absolute; inset:0; isolation:isolate; background:linear-gradient(180deg,rgba(5,22,29,.15),transparent 40%,rgba(5,15,20,.88) 80%),url('../art/world/menu-dawn.webp') center 38% / cover no-repeat; }
 .menu-crest { border:0; background:linear-gradient(180deg,rgba(6,24,30,.7),transparent); box-shadow:none; }
 .menu-crest h1 { font-family:Georgia,serif; font-weight:500; font-size:clamp(32px,9vw,52px); line-height:1.02; text-shadow:0 3px 20px #07171e; margin:8px 0; }
 .menu-crest .kicker { font-size:10px; letter-spacing:.17em; color:#e8d5a0; }
@@ -843,3 +843,39 @@ hr.sep { border: 0; border-top: 1px solid rgba(231,197,106,.18); margin: 8px 0; 
 #upd .card {max-width:420px;margin:auto;padding:18px;}
 #upd-state {font-size:13px;}
 @media(max-height:740px){.menu-lux{overflow-y:auto}.menu-actions.lux{padding-top:16px}.menu-crest{padding:4px}.menu-crest h1{font-size:30px}}
+/* iPhone portrait/landscape: use the visible viewport and reserve the notch/home area. */
+#app {height:100%;height:100dvh;bottom:auto;}
+.toast-wrap {position:fixed;z-index:100;left:calc(12px + var(--safe-left));right:calc(12px + var(--safe-right));top:calc(10px + var(--safe-top));}
+.toast {pointer-events:none;}
+.banner {position:fixed;max-height:calc(100dvh - 20px - var(--safe-top) - var(--safe-bottom));overflow:auto;left:calc(10px + var(--safe-left));right:calc(10px + var(--safe-right));}
+.sheet,.sheet .body {min-height:0;}
+.sheet .body {flex:1 1 auto;overscroll-behavior:contain;}
+.settings-modal>.screen {position:relative;inset:auto;min-height:0;flex:1;padding:0;}
+.menu-lux {overflow-x:hidden;overflow-y:auto;}
+.menu-crest,.menu-actions.lux {flex-shrink:0;}
+button,a.btn {touch-action:manipulation;}
+@media(orientation:landscape) and (max-height:540px){
+ .screen {padding:calc(8px + var(--safe-top)) calc(12px + var(--safe-right)) calc(8px + var(--safe-bottom)) calc(12px + var(--safe-left));}
+ .menu-lux {display:grid;grid-template-columns:minmax(0,1fr) minmax(310px,1fr);gap:16px;background-position:center 40%;align-items:center;}
+ .menu-crest {align-self:start;margin-top:10px;}
+ .menu-crest h1 {font-size:32px;}
+ .menu-actions.lux {margin:0;padding:0;gap:5px;}
+ .menu-actions.lux .btn {min-height:44px;padding:6px;font-size:13px;}
+ .menu-actions.lux>.menu-update {min-height:44px;}
+ .game {display:grid;grid-template-columns:minmax(0,1fr) 250px;grid-template-rows:auto minmax(0,1fr);}
+ .topbar {grid-column:1;grid-row:1;}
+ .stage {grid-column:1;grid-row:2;min-width:0;}
+ .dock {grid-column:2;grid-row:1/3;overflow:auto;padding:6px;gap:5px;min-height:0;border-left:1px solid var(--line);}
+ .herobar {padding:4px;gap:5px;}.herobar-port{width:44px;height:54px;}.herobar-text{font-size:10px;}.herobar-text b{font-size:18px;}
+ .herobar>.btn {font-size:11px;padding:5px;}
+ .cmdbar {grid-template-columns:repeat(3,minmax(0,1fr));}.cmd{min-height:48px;}
+ .coach {font-size:11px;padding:4px;}.coach .btn{padding:4px;font-size:11px;}
+ .modal-back {padding:calc(6px + var(--safe-top)) calc(10px + var(--safe-right)) calc(6px + var(--safe-bottom)) calc(10px + var(--safe-left));}
+ .sheet {width:100%;max-height:100%;margin:0 auto;}
+ .town-stage {flex-basis:100px;height:100px;}.town-body{padding-top:4px;}.town-steward{height:95px;}
+ .faction-grid {grid-template-columns:repeat(4,minmax(0,1fr));}.faction-card img{height:100px;}.faction-card b{font-size:18px;}
+ .commerce-grid {grid-template-columns:repeat(2,minmax(0,1fr));}.commerce-art img{height:130px;}
+ .battlebar {grid-template-columns:repeat(2,minmax(0,1fr));}.bface img{height:32px;width:28px;}.bfaces{font-size:10px;}
+ .dayline {font-size:10px;}.dayline strong{font-size:13px;}.woodtop{padding:2px 4px;}
+ .resbar .chip {font-size:9px;}.resbar .chip i{width:12px;}
+}

@@ -1,4 +1,4 @@
-const VERSION = "lk-2.1.1";
+const VERSION = "lk-2.1.2";
 const PRECACHE = [
   "./js/updates.js",
   "./update.html",

@@ -57,10 +57,9 @@ function saveProgress() { localStorage.setItem("lk-progress", JSON.stringify(S.p
 
 function toast(text) {
   if (!text) return;
-  const wrap = document.getElementById("toasts");
-  if (!wrap) return;
-  const host = document.querySelector(".game");
-  if (host && wrap.parentElement !== host) host.appendChild(wrap);
+  let wrap = document.getElementById("toasts");
+  if (!wrap) { wrap=document.createElement("div");wrap.id="toasts";wrap.className="toast-wrap";document.body.appendChild(wrap); }
+  if(wrap.parentElement!==document.body)document.body.appendChild(wrap);
   while (wrap.children.length >= 2) wrap.firstChild.remove();
   const el = document.createElement("div");
   el.className = "toast";
@@ -114,6 +113,7 @@ function renderScreen() {
     settings: ui.settingsHTML(S.settings),
     shop: ui.shopHTML(S.game),
   }[S.screen] || ui.menuHTML({ continue: cont });
+  const notices=document.getElementById("toasts");if(notices)document.body.appendChild(notices);
   app.innerHTML = html;
 }
 
@@ -217,7 +217,7 @@ function modalHTML(m) {
   if (m.type === "blog") return ui.battleLogHTML(S.game.battle);
   if (m.type === "surrender") return ui.surrenderHTML(m.cost);
   if (m.type === "confirm-end") return `<div class="modal-back"><div class="sheet"><header class="sheeth"><h2>Завершить ход?</h2></header><div class="body stack"><p>У героини ещё есть запас хода.</p><button class="btn primary" data-act="end-turn-force">Завершить</button><button class="btn ghost" data-act="close-modal">Остаться</button></div></div></div>`;
-  if (m.type === "settings") return `<div class="modal-back"><div class="sheet"><div class="body">${ui.settingsHTML(S.settings)}</div></div></div>`;
+  if (m.type === "settings") return `<div class="modal-back settings-modal">${ui.settingsHTML(S.settings)}</div>`;
   return "";
 }
 
@@ -241,7 +241,7 @@ function frame(t) {
       grid: S.grid !== false,
     };
     if ((S.mode === "battle" || S.mode === "deploy") && S.game.battle) {
-      if (!S.battleCam) S.battleCam = battleCamera(rect.width, rect.height);
+      if (!S.battleCam || S.battleCam.viewport !== rect.width+"x"+rect.height) { S.battleCam = battleCamera(rect.width, rect.height);S.battleCam.viewport=rect.width+"x"+rect.height; }
       const bcam = S.battleCam;
       const cur = S.game.battle && currentStack(S.game.battle);
       let reach = null;
@@ -784,7 +784,11 @@ async function onAct(actName, el) {
       }));
       return;
     }
-    if (actName === "check-update") { await checkUpdates?.(true);return; }
+    if (actName === "check-update") {
+      const old=el.textContent;el.disabled=true;el.textContent="Проверяем…";
+      try { if(checkUpdates)await checkUpdates(true);else toast("Проверка ещё запускается. Повторите через несколько секунд."); }
+      finally { el.disabled=false;el.textContent=old; }return;
+    }
     if (actName === "test-voice") {
       const voices=window.speechSynthesis?.getVoices()||[];
       if(!voices.some(v=>/^ru/i.test(v.lang))){toast("Русский системный голос пока недоступен на устройстве.");return;}

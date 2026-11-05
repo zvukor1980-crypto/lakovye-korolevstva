@@ -933,7 +933,7 @@ export function battleCamera(w, h) {
   return {
     x: size * Math.sqrt(3) * (BROWS - 1) / 2,
     y: size * 1.5 * (BCOLS - 1) / 2,
-    zoom: Math.max(0.42, zoom),
+    zoom: Math.max(0.1, zoom),
     size,
   };
 }

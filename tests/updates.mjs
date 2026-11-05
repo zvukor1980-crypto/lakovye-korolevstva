@@ -9,10 +9,10 @@ globalThis.window={addEventListener(){}};
 globalThis.document={hidden:false,addEventListener(){},getElementById:id=>elements.get(id),createElement:()=>({}),body:{appendChild(el){elements.set(el.id,el);elements.set('upd-btn',{});elements.set('upd-state',{});}}};
 globalThis.location={reload(){reloads++;}};
 globalThis.fetch=async()=>({ok:true,json:async()=>({version:'2.1.2'})});
-const {startUpdates}=await import('../js/updates.js');
+const {startUpdates,bounded}=await import('../js/updates.js');
 const check=startUpdates('2.1.1',{beforeReload:async()=>{saved++;}});await check(true);
 assert.equal(registered,1,'Registers without waiting for a load event');assert(elements.has('upd'));
-const clicking=elements.get('upd-btn').onclick();await Promise.resolve();await Promise.resolve();
+const clicking=elements.get('upd-btn').onclick();await new Promise(resolve=>setImmediate(resolve));
 assert.equal(reloads,0);assert.equal(activated,0,'Must not activate partially installed worker');
 worker.state='installed';reg.waiting=worker;workerEvents.statechange();await clicking;
 assert.equal(activated,1);assert.equal(saved,1);await listeners.controllerchange();assert.equal(reloads,1);
@@ -31,3 +31,7 @@ swEvents.install({waitUntil:p=>installPromise=p});await installPromise;assert(co
 context.caches.open=async()=>({addAll:async()=>{throw Error('core unavailable');}});
 swEvents.install({waitUntil:p=>installPromise=p});await assert.rejects(installPromise,/core unavailable/);
 console.log('PASS: optional artwork failure permits update; missing core code prevents partial release');
+
+assert.equal(await bounded(Promise.resolve('ok'),20),'ok');
+await assert.rejects(bounded(new Promise(()=>{}),5,'timeout'),/timeout/);
+console.log('PASS: hanging operations time out with actionable feedback');
