@@ -879,3 +879,16 @@ button,a.btn {touch-action:manipulation;}
  .dayline {font-size:10px;}.dayline strong{font-size:13px;}.woodtop{padding:2px 4px;}
  .resbar .chip {font-size:9px;}.resbar .chip i{width:12px;}
 }
+
+/* Mobile commerce: keep building and purchasing actions reachable above the home indicator. */
+@media (max-width: 650px) {
+ .sheet .body.scroll { padding-bottom: max(24px, env(safe-area-inset-bottom, 0px)); }
+ .bld-row { min-height: 82px; overflow: hidden; }
+ .bld-row .building-thumb { width: 72px; height: 72px; object-fit: contain; }
+ .commerce-grid > *, .faction-grid > * { min-width: 0; }
+ .sheet button, .sheet a.btn { min-height: 44px; }
+}
+@media (orientation: landscape) and (max-height: 540px) {
+ .sheet .body.scroll { padding-bottom: max(20px, env(safe-area-inset-bottom, 0px)); }
+ .sheet button, .sheet a.btn { min-height: 40px; }
+}
