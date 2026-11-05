@@ -1,5 +1,6 @@
 /** Original procedural chamber score. Synthesized instruments, not live recordings. */
 let ctx, master, timer, enabled=false, level=.4, scene='map', step=0, next=0;
+let resumePending=false;
 const active=new Set();
 const chords=[[50,57,62,65],[46,53,58,62],[48,55,60,64],[45,52,57,61]];
 const melody=[74,0,77,76,74,69,72,0,70,0,74,72,70,65,69,0,72,0,76,74,72,67,69,0,73,0,76,74,73,69,67,0];
@@ -37,8 +38,12 @@ export function ensureMusic(on,volume=.4){
   const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
   if(!ctx){ctx=new AC();master=ctx.createGain();master.connect(ctx.destination);}
   master.gain.setTargetAtTime(level,ctx.currentTime,.1);
-  const start=()=>{if(!enabled||document.hidden)return;if(!timer){next=ctx.currentTime+.04;timer=setInterval(schedule,100);schedule();}};
-  if(ctx.state==='suspended')ctx.resume().then(start).catch(()=>{});else start();
+  const start=()=>{if(!enabled||document.hidden||ctx.state!=='running')return;if(!timer){next=ctx.currentTime+.04;timer=setInterval(schedule,100);schedule();}};
+  if(ctx.state==='suspended'){
+   if(resumePending)return;
+   resumePending=true;
+   ctx.resume().then(start).catch(()=>{}).finally(()=>{resumePending=false;});
+  }else start();
  }catch{/* Audio is optional. */}
 }
 export function stopMusic(){

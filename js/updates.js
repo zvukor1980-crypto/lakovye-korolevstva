@@ -10,7 +10,7 @@ export function startUpdates(version, {status=()=>{}, beforeReload=async()=>{}}=
  function show(reg){
   if(document.getElementById('upd'))return;
   const el=document.createElement('div');el.id='upd';el.className='banner';
-  el.innerHTML='<div class="card"><b>Доступна новая версия</b><p class="muted">Установим обновление и перезапустим игру.</p><button class="btn primary" id="upd-btn">Обновить игру</button><p id="upd-state" role="status"></p><a class="btn ghost" href="./update.html?repair=2.1.2">Восстановить обновление</a></div>';
+  el.innerHTML='<div class="card"><b>Доступна новая версия</b><p class="muted">Установим обновление и перезапустим игру.</p><button class="btn primary" id="upd-btn">Обновить игру</button><p id="upd-state" role="status"></p><a class="btn ghost" href="./update.html">Восстановить обновление</a></div>';
   document.body.appendChild(el);
   document.getElementById('upd-btn').onclick=async()=>{
    const button=document.getElementById('upd-btn'),label=document.getElementById('upd-state');button.disabled=true;label.textContent='Загружаем файлы…';
@@ -24,7 +24,7 @@ export function startUpdates(version, {status=()=>{}, beforeReload=async()=>{}}=
     });
     worker=reg.waiting||worker;
     if(worker&&worker.state==='installed'){worker.postMessage({type:'SKIP_WAITING'});label.textContent='Перезапускаем…';setTimeout(()=>{if(!reloading){label.textContent='Браузер не завершил обновление. Откройте восстановление ниже.';button.disabled=false;}},12000);}
-    else await reload();
+    else { label.textContent='Обновление кэша через восстановление…'; location.assign('./update.html'); }
    }catch(e){label.textContent=e.message||'Нет связи. Попробуйте снова.';button.disabled=false;}
   };
  }
