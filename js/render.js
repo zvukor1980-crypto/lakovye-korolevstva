@@ -866,7 +866,7 @@ function drawHero(ctx, state, hero, cam, w, h, time, selected) {
     ctx.ellipse(0, 6 * z, 18 * z, 7 * z, 0, 0, Math.PI * 2);
     ctx.stroke();
   }
-  if (img && painted(src)) drawFigure(ctx, img, 0, 2 * z, 48 * z, time, { seed: hero.id, bob: 1.2, sway: 0.02 });
+  if (img && painted(src)) drawFigure(ctx, img, 0, 2 * z, 64 * z, time, { seed: hero.id, bob: 1.2, sway: 0.02 });
   else drawToken(ctx, img, 0, -16 * z, 16 * z, fac.color, "");
   drawPennant(ctx, 18 * z, -46 * z, z, state.players[hero.player].color);
   ctx.restore();

@@ -33,7 +33,7 @@ const GEMS = {
 export function menuHTML(opts) {
   return `<div class="screen menu-lux">
     <div class="menu-mist" aria-hidden="true"></div><div class="menu-crest"><span class="kicker">Четыре народа · Три эпохи</span>
-      <h1>Лаковые<br>королевства</h1><p class="menu-caption">Путь начинается на рассвете</p><span class="version-badge">Версия ${GAME_VERSION} · Рассвет королевств</span>
+      <h1>Лаковые<br>королевства</h1><p class="menu-caption">От древних королевств — к современным империям</p><span class="version-badge">Версия ${GAME_VERSION} · Героини эпох</span>
     </div>
     <div class="menu-actions lux">
       ${opts.continue ? `<button class="btn lux" data-act="continue">Продолжить</button>` : ""}
@@ -44,7 +44,7 @@ export function menuHTML(opts) {
       <button class="btn lux" data-act="settings">Настройки</button>
       <button class="btn small ghost menu-update" data-act="check-update">Проверить обновление · ${GAME_VERSION}</button>
       <div class="row">
-        <button class="btn small ghost" data-act="bestiary">Бестиарий</button>
+        <button class="btn small ghost" data-act="bestiary">Героини эпох</button>
         <button class="btn small ghost" data-act="help">Как играть</button>
       </div>
     </div>
@@ -83,7 +83,7 @@ export function skirmishHTML() {
   return sheet("Стычка", `
     <label class="field">Карта<select id="sk-map">${maps}</select></label>
     ${factionChoice()}
-    <label class="field">Путь<select id="sk-role"><option value="might">Сила</option><option value="magic">Магия</option></select></label>
+    <label class="field">Начальная эпоха<select id="sk-era"><option value="0">Древность — постепенное развитие</option><option value="1">Средневековье</option><option value="2">Современность — новые героини сразу</option></select></label><label class="field">Путь<select id="sk-role"><option value="might">Сила</option><option value="magic">Магия</option></select></label>
     <label class="field">Сложность соперниц<select id="sk-diff"><option value="easy">Мягкая</option><option value="normal" selected>Обычная</option><option value="hard">Жёсткая</option></select></label>
     <p class="float-note">Семена карты каждый раз новые. Победа — погасить все чужие знамёна.</p>
     <button class="btn primary" data-act="start-skirmish">Начать</button>
@@ -114,7 +114,7 @@ export function saveHTML(slots) {
   return sheet("Сохранение", `<p class="float-note">Автосохранение пишется в конце хода и после боя.</p>` + rows + `<button class="btn ghost" data-act="close-modal">Закрыть</button>`);
 }
 
-export function bestiaryHTML() {
+export function bestiaryHTML(era=2) {
   const blocks = FACTION_ORDER.map((fid) => {
     const f = FACTIONS[fid];
     const units = tiersOf(fid).map((b) => {
@@ -126,7 +126,7 @@ export function bestiaryHTML() {
     }).join("");
     return `<h3 style="color:${f.color}">${esc(f.name)}</h3><p class="muted">${esc(f.blurb)}</p>${units}`;
   }).join("");
-  return sheet("Героини и войска", `<div class="court-gallery">${[['architect','Архитектор двора'],['merchant','Хранительница лавки'],['priestess','Жрица солнца']].map(([id,name])=>`<figure><img src="art/court/${id}.webp" alt="${name}" loading="lazy"><figcaption>${name}</figcaption></figure>`).join('')}</div>` + blocks + `<button class="btn ghost" data-act="back">Назад</button>`);
+  return sheet("Героини эпох", `<button class="btn ghost" data-act="back">В главное меню</button><nav class="era-gallery-tabs">${ERAS.map(e=>`<button class="btn ${e.id===era?'primary':''}" data-act="gallery-era" data-era="${e.id}">${e.name}</button>`).join('')}</nav><p class="muted">${era===2?'Современные образы: лаковые плащи, комбинезоны и костюмы. Эти героини появляются в отрядах и городах выбранной эпохи.':'Образы героинь этой эпохи.'}</p>${FACTION_ORDER.map(f=>`<section class="era-lookbook"><h3>${esc(FACTIONS[f].name)}</h3><div class="era-models">${[0,1,2].map((role)=>`<figure><img src="${eraArt(f,era,role)}" alt="${esc(FACTIONS[f].name)} · ${['Разведчица','Командирша','Хранительница'][role]}" loading="lazy"><figcaption>${['Разведчица','Командирша','Хранительница'][role]}</figcaption></figure>`).join('')}</div></section>`).join('')}<details><summary>Характеристики войск древности</summary>${blocks}</details><div class="court-gallery">${[['architect','Архитектор двора'],['merchant','Хранительница лавки'],['priestess','Жрица солнца']].map(([id,name])=>`<figure><img src="art/court/${id}.webp" alt="${name}" loading="lazy"><figcaption>${name}</figcaption></figure>`).join('')}</div>` + `<button class="btn ghost" data-act="back">Назад</button>`);
 }
 
 export function settingsHTML(st) {
@@ -747,6 +747,6 @@ export function townPortalHTML(heroId, spellId, towns) {
 export { attackOptions, currentStack };
 
 export function resourceName(k){return RES_NAME[k]||k;}
-function factionChoice(){return `<fieldset class="faction-picker"><legend>Выберите свой народ</legend><div class="faction-grid">${FACTION_ORDER.map((id,i)=>`<label class="faction-option"><input type="radio" name="faction-choice" value="${id}" ${i===0?"checked":""}><span class="faction-card" style="--faction:${FACTIONS[id].color}"><img src="${eraArt(id,0,0)}" alt="${esc(FACTIONS[id].name)}"><b>${esc(FACTIONS[id].name)}</b><small>${esc(FACTIONS[id].blurb)}</small></span></label>`).join("")}</div><p class="muted">Соперницы принадлежат другим народам. Все начинают с древности.</p></fieldset>`;}
+function factionChoice(){return `<fieldset class="faction-picker"><legend>Выберите свой народ</legend><div class="faction-grid">${FACTION_ORDER.map((id,i)=>`<label class="faction-option"><input type="radio" name="faction-choice" value="${id}" ${i===0?"checked":""}><span class="faction-card" style="--faction:${FACTIONS[id].color}"><img src="${eraArt(id,0,0)}" alt="${esc(FACTIONS[id].name)}"><b>${esc(FACTIONS[id].name)}</b><small>${esc(FACTIONS[id].blurb)}</small></span></label>`).join("")}</div><p class="muted">Соперницы принадлежат другим народам. В кампании развитие начинается с древности. В схватке можно выбрать эпоху.</p></fieldset>`;}
 function buildingArt(b,town,era=0){if(b.tier)return portraitFor(eraId(tiersOf(town.faction)[b.tier-1]?.id||"s_page",era));if(/Hall|capitol/.test(b.id))return BLD_SPRITE.hall;if(/fort|citadel|castle/.test(b.id))return `art/sprites/castle-${town.faction==="inca"?"emerald":town.faction}.webp`;if(b.id.startsWith("mage"))return BLD_SPRITE.mage;return BLD_SPRITE[b.id]||BLD_SPRITE[b.id==="blacksmith"?"smith":b.id==="special"?"mage":"silo"];}
 function eraPanel(game,town){const s=eraStatus(game,town),p=playerById(game,town.owner);return `<section class="era-panel"><div class="era-steps">${ERAS.map(e=>`<span class="${e.id===s.current?"current":e.id<s.current?"done":""}">${e.id<s.current?"✓ ":""}${e.name}</span>`).join("")}</div>${s.next?`<div class="era-preview"><img src="${eraArt(p.faction,s.next.id,0)}" alt="Образ следующей эпохи"><div><h3>Открыть: ${s.next.name}</h3><p>${esc(s.next.desc)}</p><p class="price">${esc(costStr(s.next.cost))}</p><p class="muted">${s.reasons.map(r=>r.startsWith("building:")?"Нужно здание: "+(buildingDef(town.faction,r.split(":")[1])?.name||r):r.startsWith("resource:")?"Не хватает: "+r.split(":")[2]+" "+resourceName(r.split(":")[1]):r).map(esc).join("<br>")||"Все условия выполнены"}</p><button class="btn primary" data-act="research-era" data-town="${town.id}" ${s.ready&&p.control==="human"?"":"disabled"}>Перейти в новую эпоху</button></div></div>`:`<h3>Современная цивилизация</h3><p>Ваши воительницы используют новейшее снаряжение.</p>`}</section>`;}

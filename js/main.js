@@ -1,5 +1,5 @@
 import {startUpdates} from "./updates.js";
-import {researchEra, eraId, syncEra} from "./epochs.js";
+import {researchEra, eraId, syncEra, initializeEra} from "./epochs.js";
 import { CREATURES, GAME_VERSION, SKIRMISH, ROSTER, CLASSES, FACTIONS, calendar } from "./data.js";
 import { scenarioById } from "./engine.js";
 import {
@@ -109,7 +109,7 @@ function renderScreen() {
     campaign: ui.campaignHTML(S.progress.done || []),
     skirmish: ui.skirmishHTML(),
     load: ui.loadHTML(S.slots),
-    bestiary: ui.bestiaryHTML(),
+    bestiary: ui.bestiaryHTML(S.galleryEra??2),
     settings: ui.settingsHTML(S.settings),
     shop: ui.shopHTML(S.game),
   }[S.screen] || ui.menuHTML({ continue: cont });
@@ -699,8 +699,9 @@ function focus(hero) {
   S.cam.y = c.y;
 }
 
-function startGame(spec) {
+function startGame(spec, era=0) {
   S.game = createGame(spec);
+  initializeEra(S.game,era);
   S.screen = "game";
   S.mode = "map";
   S.modal = { type: "brief" };
@@ -754,6 +755,7 @@ async function onAct(actName, el) {
       else { S.modal = { type: "load" }; paintChrome(); }
       return;
     }
+    if (actName === "gallery-era") {S.galleryEra=Number(el.dataset.era);renderScreen();return;}
     if (actName === "bestiary") { S.screen = "bestiary"; renderScreen(); return; }
     if (actName === "help") { S.screen = "help"; renderScreen(); return; }
     if (actName === "settings" || actName === "open-settings-game") {
@@ -790,7 +792,7 @@ async function onAct(actName, el) {
         faction: document.querySelector('input[name="faction-choice"]:checked').value,
         role: document.getElementById("sk-role").value,
         difficulty: document.getElementById("sk-diff").value,
-      }));
+      }),Number(document.getElementById("sk-era").value));
       return;
     }
     if (actName === "commerce-filter") {
@@ -1211,6 +1213,7 @@ async function loadSlot(id) {
   const rec = await saves.readSave(id);
   if (!rec || !rec.data) { toast("Слот пуст."); return; }
   S.game = deserialize(rec.data);
+  for(const p of S.game.players)syncEra(S.game,p.id);
   S.seenWeek = S.game.day;
   S.screen = "game";
   S.mode = S.game.battle ? "battle" : "map";

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {existsSync} from 'node:fs';
 import {FACTION_ORDER,ERAS,CREATURES,SKIRMISH,tiersOf,eraArt} from '../js/data.js';
 import {createGame,makeSkirmish,recruit,serialize,deserialize,aiAct} from '../js/engine.js';
-import {researchEra,eraStatus,eraId} from '../js/epochs.js';
+import {researchEra,eraStatus,eraId,initializeEra} from '../js/epochs.js';
 import {hallHTML,recruitHTML,shopHTML,skirmishHTML} from '../js/ui.js';
 for(const faction of FACTION_ORDER){
  const spec=makeSkirmish({map:SKIRMISH.find(m=>m.players===4),faction});
@@ -43,3 +43,12 @@ for(const faction of FACTION_ORDER)for(const era of [0,1,2]){
 const b=createBattle({seed:2,attacker:{stacks:[{cr:'s_griff',count:1}]},defender:{stacks:[{cr:'e_bow',count:1}]}});
 assert(reachable(b,b.stacks[0]).flying,'natural flying trait is respected');
 console.log('PASS: 12 era/faction battles and natural flight');
+
+for(const era of [0,1,2]){
+ const s=createGame(makeSkirmish({map:SKIRMISH[0],faction:'scarlet'}));initializeEra(s,era);
+ assert(s.players.every(p=>p.era===era));
+ for(const h of s.heroes){assert(h.portrait.includes(era===2?'modern-v3':'epochs'));for(const slot of h.army.filter(Boolean))assert.equal(CREATURES[slot.id].era||0,era);}
+ assert.equal(s.day,ERAS[era].day);
+ const loaded=deserialize(serialize(s));assert.equal(loaded.players[0].era,era);
+}
+console.log('PASS: all starting eras convert both sides and survive save/load');

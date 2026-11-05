@@ -1,5 +1,19 @@
-const VERSION = "lk-2.2.0";
+const VERSION = "lk-2.3.0";
 const PRECACHE = [
+  "./art/world/eras-v3.webp",
+  "./art/modern-v3/modern-0-0.webp",
+  "./art/modern-v3/modern-0-1.webp",
+  "./art/modern-v3/modern-0-2.webp",
+  "./art/modern-v3/modern-1-0.webp",
+  "./art/modern-v3/modern-1-1.webp",
+  "./art/modern-v3/modern-1-2.webp",
+  "./art/modern-v3/modern-2-0.webp",
+  "./art/modern-v3/modern-2-1.webp",
+  "./art/modern-v3/modern-2-2.webp",
+  "./art/modern-v3/modern-3-0.webp",
+  "./art/modern-v3/modern-3-1.webp",
+  "./art/modern-v3/modern-3-2.webp",
+
   "./art/court/architect.webp",
   "./art/court/merchant.webp",
   "./art/court/priestess.webp",

@@ -1,6 +1,6 @@
 /** Статические данные «Лаковых королевств». Оригинальный мир, механика близкая к HoMM III. */
 
-export const GAME_VERSION = "2.2.0";
+export const GAME_VERSION = "2.3.0";
 
 export const RES_KEYS = ["gold", "lacquer", "resin", "pigment", "amber", "crystal", "pearl"];
 export const RES_NAME = {
@@ -660,7 +660,7 @@ export const ERAS = [
   {id:2, name:"Современность", day:22, desc:"Современные командирши и стрелки, усиленная броня, огнестрельное оружие у стрелковых отрядов.", cost:{gold:16000, lacquer:20, crystal:10}, req:["cityHall","mage2"]},
 ];
 export const FACTION_ORDER = ["scarlet","emerald","onyx","inca"];
-export function eraArt(faction, era=0, role=0) { return `art/epochs/${["ancient","medieval","modern"][Math.max(0,Math.min(2,era))]}-${FACTION_ORDER.indexOf(faction)}-${role % 3}.webp`; }
+export function eraArt(faction, era=0, role=0) { return `art/${era===2?"modern-v3":"epochs"}/${["ancient","medieval","modern"][Math.max(0,Math.min(2,era))]}-${FACTION_ORDER.indexOf(faction)}-${role % 3}.webp`; }
 for (const role of ["might","magic"]) {
   const src=CLASSES["emerald_"+role];
   CLASSES["inca_"+role]={...src,id:"inca_"+role,faction:"inca",name:role==="might"?"Стражница Солнца":"Жрица Солнца"};

@@ -35,3 +35,10 @@ export function researchEra(state,townId) {
  const message=p.name+': наступает '+status.next.name+'!';
  state.log.push({day:state.day,text:message});return {ok:true,message};
 }
+
+/** Optional era start for skirmish; normal campaigns retain progression. */
+export function initializeEra(state,era=0){
+ era=Math.max(0,Math.min(2,Number(era)||0));
+ if(era)state.day=Math.max(state.day,ERAS[era].day);
+ for(const p of state.players){p.era=era;syncEra(state,p.id);}
+}
