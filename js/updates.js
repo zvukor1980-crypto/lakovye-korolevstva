@@ -10,7 +10,7 @@ export function startUpdates(version, {status=()=>{}, beforeReload=async()=>{}}=
  function show(reg){
   if(document.getElementById('upd'))return;
   const el=document.createElement('div');el.id='upd';el.className='banner';
-  el.innerHTML='<div class="card"><b>Доступна новая версия</b><p class="muted">Установим обновление и перезапустим игру.</p><button class="btn primary" id="upd-btn">Обновить игру</button><p id="upd-state" role="status"></p><a class="btn ghost" href="./update.html?repair=2.3.0">Восстановить обновление</a></div>';
+  el.innerHTML='<div class="card"><b>Доступна новая версия</b><p class="muted">Установим обновление и перезапустим игру.</p><button class="btn primary" id="upd-btn">Обновить игру</button><p id="upd-state" role="status"></p><a class="btn ghost" href="./update.html?repair=2.4.0">Восстановить обновление</a></div>';
   document.body.appendChild(el);
   document.getElementById('upd-btn').onclick=async()=>{
    const button=document.getElementById('upd-btn'),label=document.getElementById('upd-state');button.disabled=true;label.textContent='Загружаем файлы…';

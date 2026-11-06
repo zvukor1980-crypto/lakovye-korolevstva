@@ -246,7 +246,7 @@ function stampWrap(g, img, dx, dy, size, ox, oy) {
 function ensureTerrain(state) {
   const S = 48;
   for (const src of new Set(Object.values(PAINT))) primeArt(src);
-  primeArt("art/sprites/pine.webp");
+  primeArt("art/world-v4/forest.webp");
   primeArt("art/sprites/windmill.webp");
   const ready = [...new Set(Object.values(PAINT))].map(src=>painted(src)?1:0).join("");
   const key = `${state.scenarioId}|${state.map.w}x${state.map.h}|${ready}`;
@@ -281,8 +281,18 @@ function ensureTerrain(state) {
       }
     }
   }
+  // Painted shorelines follow actual passable land, never a decorative map overlay.
+  g.strokeStyle="#9ce7db";g.lineWidth=3;g.lineCap="round";
+  for(let y=0;y<mh;y++)for(let x=0;x<mw;x++){
+    if(state.map.terrain[y*mw+x]!==T_WATER)continue;
+    const px=x*S,py=y*S;
+    for(const [dx,dy,ax,ay,bx,by] of [[0,-1,0,0,S,0],[1,0,S,0,S,S],[0,1,0,S,S,S],[-1,0,0,0,0,S]]){
+      const nx=x+dx,ny=y+dy;if(nx<0||ny<0||nx>=mw||ny>=mh||state.map.terrain[ny*mw+nx]===T_WATER)continue;
+      g.beginPath();g.moveTo(px+ax,py+ay);g.lineTo(px+bx,py+by);g.stroke();
+    }
+  }
   // Quiet the high-frequency ground texture; connected paths replace square road tiles.
-  g.fillStyle='rgba(24,58,45,.18)';g.fillRect(0,0,canvas.width,canvas.height);
+  g.fillStyle='rgba(68,133,104,.10)';g.fillRect(0,0,canvas.width,canvas.height);
   const roadAt=(x,y)=>x>=0&&y>=0&&x<mw&&y<mh&&(state.map.flags[y*mw+x]&FLAG_ROAD)&&![T_WATER,T_MOUNTAIN,T_LAVA].includes(state.map.terrain[y*mw+x]);
   for(let y=0;y<mh;y++)for(let x=0;x<mw;x++){
     if(!roadAt(x,y))continue;
@@ -331,8 +341,8 @@ function drawShroud(ctx, cells, state, playerId, S, dpr, kx, ky, ox, oy, w, h, b
 }
 
 function drawPine(ctx, sx, sy, zoom, seed) {
-  const img = painted("art/sprites/pine.webp");
-  const h = (34 + (Math.abs(seed) % 14)) * zoom;
+  const img = painted("art/world-v4/forest.webp");
+  const h = (42 + (Math.abs(seed) % 16)) * zoom;
   if (img) {
     drawFigure(ctx, img, sx, sy + 4 * zoom, h, 0, { seed, bob: 0, sway: 0.02 });
     return;
@@ -401,10 +411,10 @@ export function drawMap(ctx, state, view) {
     if (type === T_FOREST || type === T_HILL) {
       const ox = ((hsh & 15) - 7) * cam.zoom;
       drawPine(ctx, s.x + ox, s.y, cam.zoom, hsh);
-      if ((hsh & 1) === 0) drawPine(ctx, s.x - ox * 0.6, s.y + 3 * cam.zoom, cam.zoom * 0.86, hsh >> 3);
+      if ((hsh & 7) === 0) drawPine(ctx, s.x - ox * 0.6, s.y + 3 * cam.zoom, cam.zoom * 0.86, hsh >> 3);
     } else if (type === T_MOUNTAIN) {
       drawPeak(ctx, s.x, s.y, cam.zoom, time, x);
-    } else if (type === T_GRASS && (hsh & 7) === 0) {
+    } else if (type === T_GRASS && (hsh & 15) === 0) {
       drawPine(ctx, s.x + ((hsh >> 4) & 7) - 3, s.y, cam.zoom * 0.7, hsh);
     }
   }
@@ -640,10 +650,10 @@ function drawForestSprite(ctx, x, y, z, time, tx, ty, type) {
   }
 }
 function drawPeak(ctx, x, y, z, time, tx) {
-  primeArt(SPR.mountain);
-  const img = painted(SPR.mountain);
+  primeArt("art/world-v4/mountain.webp");
+  const img = painted("art/world-v4/mountain.webp");
   if (!img) { drawMountain(ctx, x, y, z); return; }
-  drawFigure(ctx, img, x, y + 8 * z, 58 * z, time + tx, { bob: 0, sway: 0.004, seed: tx });
+  drawFigure(ctx, img, x, y + 8 * z, 72 * z, time + tx, { bob: 0, sway: 0.004, seed: tx });
 }
 function drawTrees(ctx, x, y, z, type, tx, ty) {
   const rng = mulberry(tx * 17 + ty * 31);
@@ -698,10 +708,10 @@ function drawTown(ctx, state, town, cam, w, h, time) {
   const c = tileCenter(town.x, town.y);
   const s = toScreen(c.x, c.y, cam, w, h);
   const fac = FACTIONS[town.faction];
-  const src = SPR.castle[town.faction] || fac.castle;
+  const src = `art/world-v4/${town.faction === "inca" ? "temple" : "castle"}.webp`;
   primeArt(src);
   const img = painted(src);
-  const bh = 70 * cam.zoom;
+  const bh = 94 * cam.zoom;
   const owner = state.players.find((p) => p.id === town.owner);
   ctx.save();
   ctx.translate(s.x, s.y);
@@ -709,13 +719,18 @@ function drawTown(ctx, state, town, cam, w, h, time) {
   ctx.beginPath();
   ctx.ellipse(0, 10 * cam.zoom, 34 * cam.zoom, 10 * cam.zoom, 0, 0, Math.PI * 2);
   ctx.fill();
-  if (img) drawFigure(ctx, img, 0, 8 * cam.zoom, bh, time, { seed: town.id, bob: 0.6, sway: 0.012 });
+  if (img) drawFigure(ctx, img, 0, 8 * cam.zoom, bh, time, { seed: town.id, bob: 0, sway: 0 });
   else {
     ctx.fillStyle = fac.color;
     ctx.fillRect(-30 * cam.zoom, -bh, 60 * cam.zoom, bh);
   }
   drawPennant(ctx, 16 * cam.zoom, -bh * 0.72, cam.zoom, owner ? owner.color : fac.color);
   if (town.buildings && (town.buildings.fort || town.buildings.tavern)) torch(ctx, 18 * cam.zoom, -bh * 0.55, time);
+  ctx.font = `600 ${Math.max(10,11*cam.zoom)}px Manrope LK,sans-serif`;
+  ctx.textAlign="center";ctx.textBaseline="top";
+  const label=town.name, lw=ctx.measureText(label).width;
+  ctx.fillStyle="#0b2937e8";ctx.fillRect(-lw/2-7,16*cam.zoom,lw+14,18*cam.zoom);
+  ctx.fillStyle="#ffe9b0";ctx.fillText(label,0,18*cam.zoom);
   ctx.restore();
 }
 
@@ -786,6 +801,10 @@ function drawObject(ctx, state, obj, cam, w, h) {
     primeArt(SPR.tavern);
     const img = painted(SPR.tavern);
     if (img) drawFigure(ctx, img, 0, 8 * z, 36 * z, performance.now(), { seed: obj.id, bob: 0.3, sway: 0.01 });
+  } else if (["fountain","temple","garden","university","monolith"].includes(obj.type)) {
+    const src=`art/world-v4/${obj.type==="temple"?"temple":"fountain"}.webp`;
+    primeArt(src);const img=painted(src);
+    if(img)drawFigure(ctx,img,0,10*z,55*z,0,{bob:0,sway:0});
   } else if (obj.type === "mill") {
     primeArt("art/sprites/windmill.webp");
     const img = painted("art/sprites/windmill.webp");

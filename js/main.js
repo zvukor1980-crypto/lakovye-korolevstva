@@ -149,12 +149,13 @@ function paintChrome() {
   if (mm) mm.classList.toggle("hidden", S.mode === "battle" || S.mode === "deploy");
   const modal = document.getElementById("modal");
   const same=modal.dataset.kind===S.modal?.type&&['shop','hall'].includes(S.modal?.type);
-  const kept=same?{hero:modal.querySelector('#shop-hero')?.value,n:modal.querySelector('#shop-n')?.value,open:[...modal.querySelectorAll('details')].map(e=>e.open),scroll:modal.querySelector('.body')?.scrollTop,filter:modal.querySelector('[data-filter][aria-pressed="true"]')?.dataset.filter}:null;
+  const kept=same?{hero:modal.querySelector('#shop-hero')?.value,n:modal.querySelector('#shop-n')?.value,open:[...modal.querySelectorAll('details')].map(e=>e.open),scroll:modal.querySelector('.body')?.scrollTop,tab:modal.querySelector('[data-tab][aria-pressed="true"]')?.dataset.tab,filter:modal.querySelector('[data-filter][aria-pressed="true"]')?.dataset.filter}:null;
   modal.innerHTML = S.modal ? modalHTML(S.modal) : "";
   modal.dataset.kind=S.modal?.type||'';
   if(kept){
     for(const [id,value] of [['shop-hero',kept.hero],['shop-n',kept.n]]){const input=modal.querySelector('#'+id);if(input&&value!=null)input.value=value;}
     [...modal.querySelectorAll('details')].forEach((e,i)=>e.open=!!kept.open[i]);
+    if(kept.tab){const tab=modal.querySelector('[data-tab="'+kept.tab+'"]');if(tab)onAct("shop-tab",tab);}
     if(kept.filter){const b=modal.querySelector('[data-filter="'+kept.filter+'"]');if(b)onAct('commerce-filter',b);}
     const body=modal.querySelector('.body');if(body)body.scrollTop=kept.scroll||0;
   }
@@ -199,7 +200,7 @@ function modalHTML(m) {
   if (m.type === "hero") return ui.heroHTML(S.game, m.id);
   if (m.type === "spell") return ui.spellbookHTML(S.game, heroById(S.game, m.id));
   if (m.type === "system") return ui.systemHTML();
-  if (m.type === "shop") return `<div class="modal-back"><div class="sheet" style="max-height:100%"><div class="body scroll">${ui.shopHTML(S.game)}</div></div></div>`;
+  if (m.type === "shop") return `<div class="modal-back"><div class="sheet commerce-sheet"><header class="sheeth"><h2>Лавка · бесплатно</h2><button class="btn small ghost" data-act="close-modal">На карту</button></header><div class="body scroll">${ui.shopHTML(S.game)}</div></div></div>`;
   if (m.type === "save") return `<div class="modal-back"><div class="sheet"><div class="body scroll">${ui.saveHTML(S.slots)}</div></div></div>`;
   if (m.type === "load") return `<div class="modal-back"><div class="sheet"><div class="body scroll">${ui.loadHTML(S.slots)}</div></div></div>`;
   if (m.type === "level") return ui.levelHTML(ensureOffer(S.game, m.id));
@@ -795,12 +796,18 @@ async function onAct(actName, el) {
       }),Number(document.getElementById("sk-era").value));
       return;
     }
+    if (actName === "shop-tab") {
+      const root=el.closest('.shop-catalogue');
+      for(const b of root.querySelectorAll('[data-tab]')) b.setAttribute('aria-pressed',String(b===el));
+      for(const panel of root.querySelectorAll('[data-shop-panel]'))panel.hidden=panel.dataset.shopPanel!==el.dataset.tab;
+      return;
+    }
     if (actName === "commerce-filter") {
       const sheet=el.closest('.commerce-sheet');
       for(const b of sheet.querySelectorAll('[data-act="commerce-filter"]'))b.setAttribute('aria-pressed',String(b===el));
       let count=0;
       for(const card of sheet.querySelectorAll('[data-building-card]')){const show=el.dataset.filter==='all'||card.dataset[el.dataset.filter]==='true';card.hidden=!show;if(show)count++;}
-      sheet.querySelector('.filter-status').textContent=count?'Показано зданий: '+count:'Сейчас таких зданий нет. Выберите другую категорию.';
+      sheet.querySelector('.filter-status').textContent=count?'Показано зданий: '+count:g.towns.find(t=>t.id===S.modal?.town)?.builtToday&&el.dataset.filter==='ready'?'Сегодня уже построено здание. Следующая стройка — в новый день.':'Сейчас таких зданий нет. Посмотрите условия во вкладке «Все».';
       return;
     }
     if (actName === "test-music") {

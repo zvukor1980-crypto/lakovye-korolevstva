@@ -70,3 +70,12 @@
 Новая панорамная заставка и 12 современных взрослых героинь в лаковых плащах, костюмах и комбинезонах. Спрайты с прозрачностью используются в современных войсках, героях и городах; старые сохранения получают актуальные портреты при загрузке. Галерея «Героини эпох» доступна из главного меню и позволяет сравнить три эпохи. Схватку можно начать сразу в выбранной эпохе (обе стороны получают её одновременно); кампания по умолчанию развивается с древности. Героиня на карте увеличена с 48 до 64 условных единиц. Это новые изображения, не новые видеоклипы.
 
 Проверка: npm test, дополнительные проверки старта/сохранения всех трёх эпох; браузерная галерея 390×844 и запуск современной схватки. Изображения созданы встроенным генератором: atlas 4×3 distinct adult women in modern glossy patent leather, transparent; panoramic three-era kingdoms key art. Файлы: art/modern-v3 и art/world/eras-v3.webp.
+
+## 2.4.0 — Атлас королевств
+- Replaced the main-menu button list with illustrated adventure, custom-game, heroine and save tiles.
+- Added six transparent world dioramas, cached offline: forest, mountain, castle, temple, fountain and market. Map retains real terrain/pathfinding; painted shore edges and named towns improve landmarks.
+- City has large build/shop actions, illustrated building cards and collapsed garrison controls. Building catalogue initially shows affordable, eligible buildings; all requirements remain available in other filters.
+- Shop is a single scroll container with a persistent close header, four illustrated categories and retained category/quantity/hero after purchases. Direct shop access in the game dock. Resources have names as well as colours.
+- Retains all four factions, era transitions, modern artwork, save format and audio. No paid dependencies or API calls.
+- Artwork generated with built-in image generation: “six isolated isometric dioramas, strict 3×2 grid: flowering emerald forest, alpine mountain, ivory blue-roof castle, golden Inca-inspired temple, enchanted crystal fountain, timber market; transparent background, hand-painted 3D style, no text.” Atlas cropped into six WebP assets, original alpha preserved.
+- Validation: existing battle/era/audio/update suites; browser checks of 390×844, 390×664, 844×390 and 844×300 with simulated safe-area padding; resource grant, troop grant, construction, category persistence, saved-game resume. Physical iPhone Safari not directly tested.

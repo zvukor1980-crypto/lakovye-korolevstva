@@ -31,24 +31,8 @@ const GEMS = {
 };
 
 export function menuHTML(opts) {
-  return `<div class="screen menu-lux">
-    <div class="menu-mist" aria-hidden="true"></div><div class="menu-crest"><span class="kicker">Четыре народа · Три эпохи</span>
-      <h1>Лаковые<br>королевства</h1><p class="menu-caption">От древних королевств — к современным империям</p><span class="version-badge">Версия ${GAME_VERSION} · Героини эпох</span>
-    </div>
-    <div class="menu-actions lux">
-      ${opts.continue ? `<button class="btn lux" data-act="continue">Продолжить</button>` : ""}
-      <button class="btn lux" data-act="campaign">Кампания</button>
-      <button class="btn lux" data-act="skirmish">Схватка</button>
-      <button class="btn lux" data-act="load">Загрузить</button>
-      <button class="btn lux" data-act="shop-menu">Лавка</button>
-      <button class="btn lux" data-act="settings">Настройки</button>
-      <button class="btn small ghost menu-update" data-act="check-update">Проверить обновление · ${GAME_VERSION}</button>
-      <div class="row">
-        <button class="btn small ghost" data-act="bestiary">Героини эпох</button>
-        <button class="btn small ghost" data-act="help">Как играть</button>
-      </div>
-    </div>
-  </div>`;
+ const tile=(act,title,sub,art,cls='')=>`<button class="portal-tile ${cls}" data-act="${act}"><img src="${art}" alt=""><span><b>${title}</b><small>${sub}</small></span><i aria-hidden="true">↗</i></button>`;
+ return `<div class="screen royal-home"><div class="home-title"><span class="kicker">ЛАКОВЫЕ КОРОЛЕВСТВА</span><h1>Ваше царство.<br>Ваша история.</h1><p>Четыре народа. Путешествие сквозь эпохи.</p><span class="version-badge">Версия ${GAME_VERSION} · Атлас королевств</span></div><div class="home-hub"><div class="portal-grid">${opts.continue?tile('continue','Продолжить','Вернуться в своё королевство','art/world/eras-v3.webp','portal-wide'):''}${tile('campaign','Приключение','История и новые земли','art/world/menu-dawn.webp')}${tile('skirmish','Своя игра','Выберите народ, карту и эпоху','art/world/battle-valley.webp')}${tile('bestiary','Героини','Образы всех эпох','art/modern-v3/modern-0-1.webp','portrait-tile')}${tile('load','Сохранения','Продолжите выбранную партию','art/world/eras-v3.webp')}</div><div class="home-tools"><button class="btn ghost" data-act="settings">⚙ Настройки</button><button class="btn ghost" data-act="help">? Как играть</button><button class="btn ghost" data-act="check-update">↻ Обновить · ${GAME_VERSION}</button></div></div></div>`;
 }
 
 export function helpHTML() {
@@ -80,7 +64,7 @@ export function campaignHTML(done) {
 export function skirmishHTML() {
   const maps = SKIRMISH.map((m) => `<option value="${m.id}">${esc(m.name)} — ${m.w}×${m.h}, ${m.players} знамени</option>`).join("");
   const facs = Object.values(FACTIONS).map((f) => `<option value="${f.id}">${esc(f.name)}</option>`).join("");
-  return sheet("Стычка", `
+  return sheet("Своя игра", `
     <label class="field">Карта<select id="sk-map">${maps}</select></label>
     ${factionChoice()}
     <label class="field">Начальная эпоха<select id="sk-era"><option value="0">Древность — постепенное развитие</option><option value="1">Средневековье</option><option value="2">Современность — новые героини сразу</option></select></label><label class="field">Путь<select id="sk-role"><option value="might">Сила</option><option value="magic">Магия</option></select></label>
@@ -149,11 +133,11 @@ export function shopHTML(game) {
  const heroes=game.heroes.filter(h=>h.player===p.id&&!h.lost);
  const heroOpts=heroes.map(h=>`<option value="${h.id}">${esc(h.name)}</option>`).join("");
  const troops=tiersOf(p.faction).flatMap(c=>[c.id,c.levelUpTo]).filter(Boolean).map(id=>CREATURES[eraId(id,era)]).map(c=>`<article class="commerce-card"><div class="commerce-art"><img src="${portraitFor(c.id)}" alt="${esc(c.name)}" loading="lazy"></div><div class="commerce-copy"><span class="tag">Ранг ${c.tier} · ${c.ranged?"Стрелок":"Ближний бой"}</span><h3>${esc(c.name)}</h3><p>Атака ${c.atk} · Защита ${c.def}<br>Здоровье ${c.hp} · Урон ${c.min}–${c.max}</p><button class="btn primary" data-act="shop-card-unit" data-cr="${c.id}" ${heroes.length?"":"disabled"}>Получить бесплатно</button></div></article>`).join("");
- const packs=SHOP_PACKS.map(pk=>`<button class="supply-card" data-act="shop-pack" data-id="${pk.id}"><img src="art/sprites/gold.webp" alt=""><span><b>${esc(pk.name)}</b><small>${esc(pk.desc)}</small></span><strong>Получить</strong></button>`).join("");
+ const packs=SHOP_PACKS.map((pk,i)=>`<button class="supply-card" data-act="shop-pack" data-id="${pk.id}"><img src="${["art/sprites/gold.webp","art/sprites/chest.webp","art/world-v4/market.webp","art/world-v4/fountain.webp","art/world-v4/temple.webp"][i%5]}" alt=""><span><b>${esc(pk.name)}</b><small>${esc(pk.desc)}</small></span><strong>Получить</strong></button>`).join("");
  const arts=Object.values(ARTIFACTS).map(a=>`<option value="${a.id}">${esc(a.name)} — ${esc(a.desc)}</option>`).join("");
  const spells=Object.values(SPELLS).map(a=>`<option value="${a.id}">${esc(a.name)} — ${esc(a.desc)}</option>`).join("");
  const towns=game.towns.filter(t=>t.owner===p.id).map(t=>`<h3>${esc(t.name)}</h3><div class="commerce-grid">${availableBuildings(game,t).map(b=>`<button class="supply-card" data-act="shop-card-build" data-town="${t.id}" data-id="${b.id}"><img src="${buildingArt(b,t,era)}" alt=""><span><b>${esc(b.name)}</b><small>${esc(b.desc)}</small></span><strong>Возвести</strong></button>`).join("")||"Все доступные здания уже построены."}</div>`).join("");
- return sheet("Лавка двора",`<div class="shop-heading"><img src="art/court/merchant.webp" alt="Лавочница"><div><span class="kicker">${esc(ERAS[era].name)}</span><h3>Всё для вашего королевства</h3><p>Бесплатная помощь. Золото не списывается.</p></div><button class="btn ghost" data-act="close-modal">Закрыть</button></div><label class="field">Кому передать покупки<select id="shop-hero">${heroOpts}</select></label><details class="shop-section" open><summary>Ресурсы и помощь</summary><div class="commerce-grid">${packs}</div><div class="row"><button class="btn" data-act="shop-refresh">Восстановить ход и ману</button><button class="btn" data-act="shop-stats">+1 к характеристикам</button><button class="btn" data-act="shop-level">Повысить уровень</button></div></details><details class="shop-section"><summary>Воительницы · ${esc(FACTIONS[p.faction].name)}</summary><label class="field">Количество в получаемом отряде<input id="shop-n" type="number" min="1" max="9999" value="20"></label><div class="commerce-grid">${troops}</div></details><details class="shop-section"><summary>Артефакты и заклинания</summary><img class="section-art" src="art/sprites/chest.webp" alt="Сундук с сокровищами"><label class="field">Артефакт<select id="shop-art">${arts}</select></label><button class="btn primary" data-act="shop-art">Получить артефакт</button><label class="field">Заклинание<select id="shop-sp">${spells}</select></label><button class="btn" data-act="shop-spell">Получить заклинание</button><button class="btn" data-act="shop-reveal">Открыть карту</button></details><details class="shop-section"><summary>Бесплатные здания</summary><p class="muted">Указ лавки не требует ресурсов. Зависимости зданий сохраняются.</p>${towns}</details>`);
+ return `<div class="shop-catalogue"><div class="shop-heading"><img src="art/court/merchant.webp" alt="Лавочница"><div><span class="kicker">${esc(ERAS[era].name)}</span><h3>Королевская лавка</h3><p>Выберите раздел ниже. Все подарки бесплатны.</p></div></div><nav class="shop-tabs" aria-label="Категории лавки"><button data-act="shop-tab" data-tab="supplies" aria-pressed="true"><img src="art/sprites/gold.webp" alt=""><span>Ресурсы</span></button><button data-act="shop-tab" data-tab="troops" aria-pressed="false"><img src="art/modern-v3/modern-0-1.webp" alt=""><span>Войска</span></button><button data-act="shop-tab" data-tab="magic" aria-pressed="false"><img src="art/sprites/chest.webp" alt=""><span>Магия</span></button><button data-act="shop-tab" data-tab="buildings" aria-pressed="false"><img src="art/world-v4/castle.webp" alt=""><span>Здания</span></button></nav><label class="field">Кому передать покупки<select id="shop-hero">${heroOpts}</select></label><section class="shop-section" data-shop-panel="supplies" ><div class="commerce-grid">${packs}</div><div class="row"><button class="btn" data-act="shop-refresh">Восстановить ход и ману</button><button class="btn" data-act="shop-stats">+1 к характеристикам</button><button class="btn" data-act="shop-level">Повысить уровень</button></div></section><section class="shop-section" data-shop-panel="troops" hidden><label class="field">Количество в получаемом отряде<input id="shop-n" type="number" min="1" max="9999" value="20"></label><div class="commerce-grid">${troops}</div></section><section class="shop-section" data-shop-panel="magic" hidden><img class="section-art" src="art/sprites/chest.webp" alt="Сундук с сокровищами"><label class="field">Артефакт<select id="shop-art">${arts}</select></label><button class="btn primary" data-act="shop-art">Получить артефакт</button><label class="field">Заклинание<select id="shop-sp">${spells}</select></label><button class="btn" data-act="shop-spell">Получить заклинание</button><button class="btn" data-act="shop-reveal">Открыть карту</button></section><section class="shop-section" data-shop-panel="buildings" hidden><p class="muted">Указ лавки не требует ресурсов. Зависимости зданий сохраняются.</p>${towns}</section></div>`;
 }
 
 export function voiceHTML(name, line) {
@@ -171,7 +155,7 @@ function sheet(title, body) {
 }
 
 export function resourcesHTML(res) {
-  return RES_KEYS.map((k) => `<span class="chip"><i>${GEMS[k]}</i>${res[k] | 0}</span>`).join("");
+  return RES_KEYS.map((k) => `<span class="chip" title="${esc(RES_NAME[k])}"><i>${GEMS[k]}</i><span><small>${esc(RES_NAME[k])}</small><b>${res[k] | 0}</b></span></span>`).join("");
 }
 
 export function topHTML(game) {
@@ -193,7 +177,7 @@ export function dockHTML(game, hero, mode, flags = {}) {
   let coach = "";
   try {
     if (!localStorage.getItem("lk-coach")) {
-      coach = `<div class="coach"><span>Коснитесь клетки — героиня пойдёт. «Ход» отдаёт день.</span><button class="btn small" data-act="dismiss-coach">Ясно</button></div>`;
+      coach = `<div class="coach"><span>Коснитесь клетки — героиня пойдёт. «Новый день» завершает ход.</span><button class="btn small" data-act="dismiss-coach">Ясно</button></div>`;
     }
   } catch { /* хранилище недоступно */ }
   const e = hero ? effective(hero) : null;
@@ -212,11 +196,11 @@ export function dockHTML(game, hero, mode, flags = {}) {
       <button class="btn small" data-act="next-hero">Дальше</button>
     </div>
     <div class="cmdbar">
-      <button class="cmd" data-act="end-turn"><b>⚑</b>Ход</button>
+      <button class="cmd" data-act="end-turn"><b>☀</b>Новый день</button>
       <button class="cmd" data-act="open-hero"><b>♛</b>Герой</button>
-      <button class="cmd" data-act="open-town"><b>⌂</b>Замок</button>
+      <button class="cmd" data-act="open-town"><b>⌂</b>Город</button>
       <button class="cmd" data-act="open-overview"><b>◉</b>Царство</button>
-      <button class="cmd" data-act="open-spell"><b>✦</b>Книга</button>
+      <button class="cmd" data-act="open-shop"><b>▣</b>Лавка</button>
       <button class="cmd" data-act="open-quest"><b>✦</b>Цель</button>
     </div>`;
 }
@@ -366,15 +350,15 @@ export function townHTML(game, townId) {
     </header>
     <div class="town-body">
       <p class="kicker">${esc(ERAS[playerById(game,town.owner)?.era||0].name)} · ${town.builtToday?"Сегодня уже строили":"Можно построить одно здание"}</p>
-      <div class="build-bar">${bar}</div>
-      <div class="army-line"><span>${visitor ? esc(visitor.name) : "В гостях"}</span>${visitor ? armyRow(visitor.army, "hero:" + visitor.id, you) : `<p class="muted">Героини в городе нет. Поставьте её на замок.</p>`}</div>
-      <div class="army-line"><span>Гарнизон</span>${armyRow(town.garrison, "garrison", you)}</div>
+      <div class="city-actions">${you?`<button class="city-action" data-act="open-hall" data-town="${town.id}"><img src="art/world-v4/castle.webp" alt=""><b>Построить здание</b><small>Доход, оборона и новые отряды</small></button><button class="city-action" data-act="open-shop"><img src="art/world-v4/market.webp" alt=""><b>Открыть лавку</b><small>Бесплатные ресурсы и войска</small></button>`:""}</div>
+      <details class="garrison-details"><summary>Армия и гарнизон</summary><div class="army-line"><span>${visitor ? esc(visitor.name) : "В гостях"}</span>${visitor ? armyRow(visitor.army, "hero:" + visitor.id, you) : `<p class="muted">Героини в городе нет. Поставьте её на замок.</p>`}</div>
+      <div class="army-line"><span>Гарнизон</span>${armyRow(town.garrison, "garrison", you)}</div></details>
       <div class="row">
-        ${you ? `<button class="btn small primary" data-act="open-hall" data-town="${town.id}">Строительство и эпохи</button>` : ""}
+
         ${you ? `<button class="btn small" data-act="open-trade" data-town="${town.id}" ${town.buildings.market ? "" : "disabled"}>Рынок</button>` : ""}
       </div>
-      <h3>Здания и найм войск</h3>
-      <div class="stack">${built || `<p class="muted">Пока только покои. Откройте «Строить».</p>`}</div>
+      <h3>Ваши здания · нажмите для действия</h3>
+      <div class="city-buildings">${built || `<p class="muted">Пока только покои. Откройте «Строить».</p>`}</div>
       <p class="float-note">${town.builtToday ? "Сегодня уже строили." : "Один дом в день. Повторное касание слота войска открывает сведения."}</p>
     </div>
   </div></div>`;
@@ -388,9 +372,9 @@ export function hallHTML(game, townId) {
     const built=!!town.buildings[b.id], missing=(b.req||[]).filter(id=>!town.buildings[id]);
     const affordable=canAfford(p.resources,b.cost), ready=you&&!built&&!town.builtToday&&allowed.has(b.id)&&affordable;
     const reasons=built?"Построено":missing.length?"Сначала: "+missing.map(id=>buildingDef(town.faction,id)?.name||id).join(", "):b.needsGrail&&!allowed.has(b.id)?"Найдите Корону Блеска":town.builtToday?"Следующая стройка — завтра":!affordable?"Не хватает: "+costStr(Object.fromEntries(Object.entries(b.cost).filter(([k,v])=>(p.resources[k]||0)<v).map(([k,v])=>[k,v-(p.resources[k]||0)]))):"Можно построить";
-    return {ready,built,html:`<article data-building-card data-ready="${ready}" data-troops="${!!b.tier}" data-city="${!b.tier}" data-built="${built}" class="commerce-card ${built?"is-built":""}"><div class="commerce-art"><img src="${buildingArt(b,town,p.era||0)}" alt="${esc(b.name)}" loading="lazy"></div><div class="commerce-copy"><span class="tag">${built?"Готово":b.tier?"Войска · ранг "+b.tier:"Город"}</span><h3>${esc(b.name)}</h3><p>${esc(b.desc)}</p><div class="price">${esc(costStr(b.cost))}</div><p class="availability ${ready?"ready":""}">${esc(reasons)}</p><button class="btn ${ready?"primary":"ghost"}" data-act="build" data-town="${town.id}" data-id="${b.id}" ${ready?"":"disabled"}>${built?"Построено":"Построить"}</button></div></article>`};
+    return {ready,built,html:`<article ${ready?"":"hidden"} data-building-card data-ready="${ready}" data-troops="${!!b.tier}" data-city="${!b.tier}" data-built="${built}" class="commerce-card ${built?"is-built":""}"><div class="commerce-art"><img src="${buildingArt(b,town,p.era||0)}" alt="${esc(b.name)}" loading="lazy"></div><div class="commerce-copy"><span class="tag">${built?"Готово":b.tier?"Войска · ранг "+b.tier:"Город"}</span><h3>${esc(b.name)}</h3><p>${esc(b.desc)}</p><div class="price">${esc(costStr(b.cost))}</div><p class="availability ${ready?"ready":""}">${esc(reasons)}</p><button class="btn ${ready?"primary":"ghost"}" data-act="build" data-town="${town.id}" data-id="${b.id}" ${ready?"":"disabled"}>${built?"Построено":"Построить"}</button></div></article>`};
   }).sort((a,b)=>Number(b.ready)-Number(a.ready)||Number(a.built)-Number(b.built)).map(c=>c.html).join("");
-  return `<div class="modal-back"><div class="sheet commerce-sheet"><header class="sheeth"><h2>Строительство</h2><button class="btn small ghost" data-act="back-town" data-town="${town.id}">В город</button></header><div class="body"><div class="budget-bar">${resourcesHTML(p.resources)}</div><div class="court-banner"><img src="art/court/architect.webp" alt="Архитектор двора"><div><span class="kicker">${esc(town.name)}</span><h3>Создайте своё королевство</h3><p>${town.builtToday?'Сегодня строительство завершено. Следующее — завтра.':'Выберите одно здание для строительства сегодня.'}</p></div></div><details class="era-disclosure"><summary>Развитие цивилизации · ${esc(ERAS[p.era||0].name)}</summary>${eraPanel(game,town)}</details><nav class="commerce-filters" aria-label="Категории зданий">${[['all','Все'],['ready','Доступно'],['city','Город'],['troops','Войска'],['built','Готово']].map(([key,label])=>`<button class="btn" data-act="commerce-filter" data-filter="${key}" aria-pressed="${key==='all'}">${label}</button>`).join('')}</nav><p class="filter-status" role="status">Доступные здания показаны первыми. Цена и условия — в каждой карточке.</p><div class="commerce-grid">${cards}</div></div></div></div>`;
+  return `<div class="modal-back"><div class="sheet commerce-sheet"><header class="sheeth"><h2>Строительство</h2><button class="btn small ghost" data-act="back-town" data-town="${town.id}">В город</button></header><div class="body"><div class="budget-bar">${resourcesHTML(p.resources)}</div><div class="court-banner"><img src="art/court/architect.webp" alt="Архитектор двора"><div><span class="kicker">${esc(town.name)}</span><h3>Создайте своё королевство</h3><p>${town.builtToday?'Сегодня строительство завершено. Следующее — завтра.':'Выберите одно здание для строительства сегодня.'}</p></div></div><details class="era-disclosure"><summary>Развитие цивилизации · ${esc(ERAS[p.era||0].name)}</summary>${eraPanel(game,town)}</details><nav class="commerce-filters" aria-label="Категории зданий">${[['all','Все'],['ready','Доступно'],['city','Город'],['troops','Войска'],['built','Готово']].map(([key,label])=>`<button class="btn" data-act="commerce-filter" data-filter="${key}" aria-pressed="${key==='ready'}">${label}</button>`).join('')}</nav><p class="filter-status" role="status">${town.builtToday?"Сегодня здание уже построено. Продолжить можно в новый день.":"Выберите здание: здесь только то, что можно построить сейчас. Остальные — во вкладке «Все»."}</p><div class="commerce-grid">${cards}</div></div></div></div>`;
 }
 
 export function recruitHTML(game, townId, buildingId) {
@@ -748,5 +732,5 @@ export { attackOptions, currentStack };
 
 export function resourceName(k){return RES_NAME[k]||k;}
 function factionChoice(){return `<fieldset class="faction-picker"><legend>Выберите свой народ</legend><div class="faction-grid">${FACTION_ORDER.map((id,i)=>`<label class="faction-option"><input type="radio" name="faction-choice" value="${id}" ${i===0?"checked":""}><span class="faction-card" style="--faction:${FACTIONS[id].color}"><img src="${eraArt(id,0,0)}" alt="${esc(FACTIONS[id].name)}"><b>${esc(FACTIONS[id].name)}</b><small>${esc(FACTIONS[id].blurb)}</small></span></label>`).join("")}</div><p class="muted">Соперницы принадлежат другим народам. В кампании развитие начинается с древности. В схватке можно выбрать эпоху.</p></fieldset>`;}
-function buildingArt(b,town,era=0){if(b.tier)return portraitFor(eraId(tiersOf(town.faction)[b.tier-1]?.id||"s_page",era));if(/Hall|capitol/.test(b.id))return BLD_SPRITE.hall;if(/fort|citadel|castle/.test(b.id))return `art/sprites/castle-${town.faction==="inca"?"emerald":town.faction}.webp`;if(b.id.startsWith("mage"))return BLD_SPRITE.mage;return BLD_SPRITE[b.id]||BLD_SPRITE[b.id==="blacksmith"?"smith":b.id==="special"?"mage":"silo"];}
+function buildingArt(b,town,era=0){if(b.tier)return portraitFor(eraId(tiersOf(town.faction)[b.tier-1]?.id||"s_page",era));if(/Hall|capitol|fort|citadel|castle/.test(b.id))return `art/world-v4/${town.faction==="inca"?"temple":"castle"}.webp`;if(b.id==="market")return "art/world-v4/market.webp";if(/fort|citadel|castle/.test(b.id))return `art/sprites/castle-${town.faction==="inca"?"emerald":town.faction}.webp`;if(b.id.startsWith("mage"))return BLD_SPRITE.mage;return BLD_SPRITE[b.id]||BLD_SPRITE[b.id==="blacksmith"?"smith":b.id==="special"?"mage":"silo"];}
 function eraPanel(game,town){const s=eraStatus(game,town),p=playerById(game,town.owner);return `<section class="era-panel"><div class="era-steps">${ERAS.map(e=>`<span class="${e.id===s.current?"current":e.id<s.current?"done":""}">${e.id<s.current?"✓ ":""}${e.name}</span>`).join("")}</div>${s.next?`<div class="era-preview"><img src="${eraArt(p.faction,s.next.id,0)}" alt="Образ следующей эпохи"><div><h3>Открыть: ${s.next.name}</h3><p>${esc(s.next.desc)}</p><p class="price">${esc(costStr(s.next.cost))}</p><p class="muted">${s.reasons.map(r=>r.startsWith("building:")?"Нужно здание: "+(buildingDef(town.faction,r.split(":")[1])?.name||r):r.startsWith("resource:")?"Не хватает: "+r.split(":")[2]+" "+resourceName(r.split(":")[1]):r).map(esc).join("<br>")||"Все условия выполнены"}</p><button class="btn primary" data-act="research-era" data-town="${town.id}" ${s.ready&&p.control==="human"?"":"disabled"}>Перейти в новую эпоху</button></div></div>`:`<h3>Современная цивилизация</h3><p>Ваши воительницы используют новейшее снаряжение.</p>`}</section>`;}

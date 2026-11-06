@@ -1,5 +1,12 @@
-const VERSION = "lk-2.3.0";
+const VERSION = "lk-2.4.0";
 const PRECACHE = [
+  "./art/world-v4/forest.webp",
+  "./art/world-v4/mountain.webp",
+  "./art/world-v4/castle.webp",
+  "./art/world-v4/temple.webp",
+  "./art/world-v4/fountain.webp",
+  "./art/world-v4/market.webp",
+
   "./art/world/eras-v3.webp",
   "./art/modern-v3/modern-0-0.webp",
   "./art/modern-v3/modern-0-1.webp",

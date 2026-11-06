@@ -926,3 +926,165 @@ button,a.btn {touch-action:manipulation;}
 .era-models figcaption{text-align:center;padding:12px;color:#f0dab2;font-size:13px;background:#10242bbf;}
 @media(max-width:650px){.era-models{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:12px;padding-bottom:12px}.era-models figure{flex:0 0 82%;min-width:82%;scroll-snap-align:center}.era-models img{height:440px}.menu-crest h1{font-size:38px}.menu-caption{max-width:210px}.menu-actions.lux{gap:7px;padding:10px}.herobar-port{width:58px;height:78px}}
 @media(orientation:landscape) and (max-height:540px){.menu-lux{background-position:center,center 36%}.menu-crest h1{font-size:36px}.menu-actions.lux{padding:9px;gap:4px}.menu-actions.lux .btn{min-height:40px}.era-models img{height:270px}.herobar-port{width:62px;height:92px}.herobar-text b{font-size:17px}}
+/* 2.4: illustrated atlas, task-oriented city and visible shop navigation. */
+:root{--ink:#f7f1de;--muted:#aec5c5;--gold:#efce86;--line:#91bcb43b}
+
+.royal-home{display:grid;grid-template-columns:1fr minmax(330px,480px);align-items:center;gap:32px;background:linear-gradient(90deg,#061c2c22,#061c2c66 45%,#061c2cf5),url('../art/world/eras-v3.webp') center/cover;padding:calc(24px + var(--safe-top)) calc(32px + var(--safe-right)) calc(24px + var(--safe-bottom)) calc(32px + var(--safe-left));overflow:auto}
+
+.home-title{align-self:end;padding-bottom:24px;text-shadow:0 3px 16px #000}
+.home-title h1{font-size:clamp(38px,5vw,72px);line-height:.97;color:#fff0cc;margin:15px 0}
+.home-title p{max-width:260px;font-size:14px;line-height:1.6}
+.home-title .kicker{letter-spacing:3px;font-size:11px}
+.home-hub{width:100%;min-width:0}
+.portal-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.portal-tile{position:relative;isolation:isolate;overflow:hidden;min-height:164px;border:1px solid #e7cd8c77;border-radius:20px;background:#193b43;text-align:left;color:#fff;padding:16px;display:flex;align-items:end;box-shadow:0 10px 30px #0004}
+.portal-tile:after{content:'';position:absolute;inset:0;background:linear-gradient(transparent,#051824ee);z-index:-1}
+.portal-tile img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2}
+.portal-tile b{display:block;font-family:Georgia,serif;font-size:24px}
+.portal-tile small{display:block;font-size:11px;line-height:1.4;color:#d6e9e5;margin-top:6px}
+.portal-tile i{position:absolute;top:10px;right:13px;color:#f4d790;font-size:23px}
+.portal-wide{grid-column:1/-1;min-height:100px}
+.portrait-tile img{object-fit:contain;object-position:80% top}
+.home-tools{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.home-tools .btn{flex:1;min-height:44px;font-size:12px;padding:8px;background:#082630dd;border-radius:12px}
+
+.card,.sheet{background:linear-gradient(145deg,#15383f,#081e2c);border:1px solid #bad6c955;border-radius:22px}
+.screen:not(.royal-home):not(.menu-lux){background:radial-gradient(ellipse at top,#28575e,#081a28)!important}
+.btn{border-radius:12px}
+.btn.primary{background:linear-gradient(135deg,#f8df9d,#caa45b);color:#172f33;border-color:#ffe7a7}
+.sheeth{background:#0c2832f5}
+.commerce-sheet .body{padding:14px}
+.commerce-filters{top:0;background:#0c2832f5}
+.budget-bar{position:static!important}
+.court-banner{background:linear-gradient(90deg,#102f3a44,#102f3add),url('../art/world/menu-dawn.webp') center/cover;min-height:125px}
+.court-banner>img{height:155px;width:29%;object-position:50% 18%}
+.commerce-grid{gap:12px}
+.commerce-card{display:flex;flex-direction:column;border-radius:19px;background:linear-gradient(155deg,#31545c,#112c39);border:1px solid #abcac34d}
+.commerce-art{height:170px;justify-content:center;background:radial-gradient(ellipse at center,#76a59a66,transparent 70%)}
+.commerce-art img{height:100%;width:100%;object-fit:contain;padding:6px;filter:drop-shadow(0 8px 6px #0005)}
+.commerce-copy{display:flex;flex:1;flex-direction:column;padding:12px}
+.commerce-copy h3{font-size:23px;line-height:1.1}
+.commerce-copy .btn{margin-top:auto;width:100%}
+.commerce-copy .availability{min-height:34px}
+.commerce-card.is-built{opacity:.67}
+.commerce-copy .price{color:#f6df9e}
+.shop-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;position:sticky;top:-14px;z-index:6;padding:10px 0;background:#102c36f7}
+.shop-tabs button{min-width:0;border:1px solid #a5c7bd66;border-radius:14px;background:#21424b;padding:5px;color:#dbece4;min-height:84px}
+.shop-tabs img{display:block;width:100%;height:49px;object-fit:contain}
+.shop-tabs span{font-size:12px;font-weight:bold}
+.shop-tabs [aria-pressed=true]{background:#d4ba7c;color:#122d36;border-color:#fff0b7;box-shadow:0 0 0 2px #f8dda433}
+.shop-section{margin:8px 0;padding:0;border:0;background:none}
+.shop-section[hidden]{display:none}
+.shop-heading{background:linear-gradient(90deg,#12323c44,#12323ce8),url('../art/world/menu-dawn.webp') center/cover;margin:0;min-height:110px}
+.shop-heading>img{height:130px;width:24%}
+.shop-heading h3{font-size:28px}
+.shop-heading>.btn{margin-left:auto}
+.shop-heading p{margin:4px 0}
+.supply-card{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;min-height:180px;background:linear-gradient(145deg,#315861,#15323e);border:1px solid #93b5aa66;border-radius:18px;padding:14px;color:#f8edcf}
+.supply-card img{width:90px;height:85px;object-fit:contain}
+.supply-card b{display:block;font-size:16px}
+.supply-card small{display:block;color:#c4dad4;font-size:12px;margin-top:6px}
+.supply-card strong{background:#e3c785;color:#17323b;padding:9px 14px;border-radius:10px;width:100%;margin-top:auto}
+.city-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}
+.city-action{border:1px solid #c1cd9d77;border-radius:16px;background:linear-gradient(130deg,#356368,#19333e);color:#f8edca;padding:12px;display:grid;text-align:center;justify-items:center;gap:5px}
+.city-action img{width:100%;height:95px;object-fit:contain}
+.city-action b{font-size:16px}
+.city-action small{font-size:11px;color:#c3d9d3}
+.city-buildings{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.city-buildings .bld-row{display:flex;flex-direction:column;text-align:center;min-width:0;padding:12px;background:#22434b}
+.city-buildings .building-thumb{width:100%;height:105px;object-fit:contain}
+.city-buildings .bld-row span{font-size:11px}
+.town-stage{height:220px;flex-basis:220px}
+.town-caption{background:linear-gradient(transparent,#061c29ee);padding:15px}
+.woodtop{background:linear-gradient(110deg,#20444b,#0b2532);border-bottom:1px solid #d6c18b55}
+.cmd{background:linear-gradient(#33535a,#18343e);border:1px solid #8eb4b155;border-radius:12px;font-size:11px;min-height:54px}
+.cmd b{color:#f1d493}
+.cmd[data-act=end-turn]{background:linear-gradient(#e4cc95,#b69862);color:#172f35}
+.cmd[data-act=end-turn] b{color:#172f35}
+.herobar{border:0;background:none}
+.herobar-text>div:last-child{display:none}
+.dock{gap:8px}
+.resbar .chip{border-radius:10px;background:#071e2b77}
+.commerce-copy .tag{letter-spacing:1px;text-transform:uppercase}
+.commerce-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+
+@media(max-width:650px){.royal-home{display:flex;justify-content:space-between;gap:16px;padding:calc(18px + var(--safe-top)) calc(16px + var(--safe-right)) calc(14px + var(--safe-bottom)) calc(16px + var(--safe-left));background-position:60% center}
+.home-title{align-self:stretch;padding:0}
+.home-title h1{font-size:39px}
+.home-title p{font-size:12px;margin:8px 0}
+.portal-tile{min-height:132px;padding:12px;border-radius:16px}
+.portal-tile b{font-size:22px}
+.portal-wide{min-height:74px}
+.portal-grid{gap:9px}
+.home-tools{gap:5px;margin-top:9px}
+.home-tools .btn{font-size:11px}
+.commerce-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.commerce-art{height:145px}
+.commerce-copy h3{font-size:21px}
+.commerce-copy{padding:10px}
+.commerce-copy p{font-size:11px}
+.commerce-copy .price{font-size:11px;padding:6px}
+.commerce-copy .btn{font-size:12px;padding:9px 5px}
+.shop-heading{flex-wrap:nowrap;padding:0 8px 0 0;gap:8px}
+.shop-heading h3{font-size:23px}
+.shop-heading>div{min-width:0}
+.shop-heading>.btn{font-size:11px;padding:6px}
+.shop-heading>img{width:23%;height:125px}
+.town-stage{height:180px;flex-basis:180px}
+.commerce-filters{top:0}
+.herobar-port{width:48px;height:59px}
+.herobar-text b{font-size:19px}
+.herobar-text{font-size:10px}
+}
+
+@media(orientation:landscape) and (max-height:540px){.royal-home{display:grid;grid-template-columns:1fr 1.35fr;gap:20px;padding-top:calc(12px + var(--safe-top));padding-bottom:calc(12px + var(--safe-bottom))}
+.home-title{align-self:center}
+.home-title h1{font-size:34px}
+.home-title p{font-size:11px}
+.portal-grid{gap:7px}
+.portal-tile{min-height:90px;padding:10px}
+.portal-tile b{font-size:21px}
+.portal-tile small{font-size:10px}
+.portal-wide{min-height:58px}
+.home-tools{margin-top:7px}
+.home-tools .btn{min-height:40px}
+.town-stage{height:125px;flex-basis:125px}
+.commerce-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+.commerce-art{height:140px}
+.shop-tabs{top:-14px}
+.cmdbar{gap:5px}
+.herobar-port{height:75px;width:52px}
+}
+
+@media(prefers-reduced-motion:no-preference){.portal-tile:hover img{transform:scale(1.04);transition:transform .3s}
+.portal-tile:active{transform:scale(.98)}
+}
+
+.shop-heading{display:grid;grid-template-columns:78px minmax(0,1fr);padding:10px;gap:8px 12px}
+.shop-heading>img{grid-row:1/3;width:78px;height:140px;border-radius:12px}
+.shop-heading>div{min-width:0}
+.shop-heading>.btn{width:auto;min-width:0;justify-self:start;margin:0;padding:8px 15px;font-size:12px}
+.shop-heading p{line-height:1.4;font-size:11px}
+.commerce-art{flex:none;padding:4px}
+.commerce-copy{align-items:stretch}
+.home-tools .btn:before{content:none}
+.city-buildings .btn{white-space:normal}
+
+@media(max-width:650px){.shop-heading{grid-template-columns:68px minmax(0,1fr)}
+.shop-heading>img{width:68px;height:145px}
+.shop-heading h3{font-size:24px}
+.commerce-art{height:160px}
+}
+
+
+.garrison-details{padding:12px;border:1px solid #83a5a455;border-radius:14px;margin:12px 0}
+.garrison-details summary{min-height:32px;cursor:pointer;color:#e5d2a3}
+.garrison-details .army-line{margin-top:12px}
+
+
+.shop-heading>img{grid-row:auto;height:110px}.shop-heading{min-height:110px}.shop-tabs{top:-14px}
+@media(orientation:landscape) and (max-height:540px){.shop-heading{display:none}.shop-tabs button{display:flex;align-items:center;justify-content:center;min-height:46px;gap:7px}.shop-tabs img{width:35px;height:35px}.shop-tabs{padding:6px 0}.commerce-art{height:140px}}
+@media(orientation:landscape) and (max-height:340px){.portal-tile{min-height:68px;padding:8px}.portal-wide{min-height:48px}.portal-tile b{font-size:19px}.portal-tile small{font-size:9px;margin-top:3px}.home-title h1{font-size:28px}.home-tools .btn{font-size:10px}.royal-home{padding-top:8px;padding-bottom:calc(8px + var(--safe-bottom))}}
+
+.chip>span{display:flex;flex-direction:column;gap:1px}.chip small{font-size:8px;color:#c3d7cf;font-weight:400}.chip b{font-size:11px}.resbar{overflow-x:auto}.resbar .chip{flex-shrink:0}.budget-bar .chip{display:flex;align-items:center;gap:4px;padding:5px 8px}
+@media(orientation:portrait) and (max-height:720px){.royal-home{gap:10px}.home-title h1{font-size:32px;margin:10px 0}.home-title p{font-size:11px;margin:6px 0}.portal-tile{min-height:105px}.portal-wide{min-height:62px}.portal-tile b{font-size:20px}.portal-tile small{font-size:10px}}
