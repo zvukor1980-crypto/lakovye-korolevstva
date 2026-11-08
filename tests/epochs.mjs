@@ -52,3 +52,20 @@ for(const era of [0,1,2]){
  const loaded=deserialize(serialize(s));assert.equal(loaded.players[0].era,era);
 }
 console.log('PASS: all starting eras convert both sides and survive save/load');
+
+// The school must grow the troop it advertises, including after save/load.
+const {growTown}=await import('../js/engine.js');
+const {townHTML}=await import('../js/ui.js');
+const solar=createGame(makeSkirmish({map:SKIRMISH[0],faction:'inca'}));
+const solarTown=solar.towns.find(t=>t.owner===0);
+Object.assign(solarTown.buildings,{dw3:true,dw4:true});
+growTown(solarTown,true);const ordinary={...solarTown.pool};
+solarTown.buildings.horde=true;growTown(solarTown,true);
+const solarTiers=tiersOf('inca');
+assert.equal(solarTown.pool[solarTiers[2].id]-ordinary[solarTiers[2].id],solarTiers[2].growth);
+assert.equal(solarTown.pool[solarTiers[3].id],ordinary[solarTiers[3].id]);
+const solarMarkup=townHTML(deserialize(serialize(solar)),solarTown.id);
+assert(solarMarkup.includes('sun-court'));
+assert(solarMarkup.includes('art/world-v4/temple.webp'));
+assert(!solarMarkup.includes('art/sprites/castle-emerald.webp'));
+console.log('PASS: solar school grows the advertised rank; solar city uses temple artwork after save/load');

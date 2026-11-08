@@ -330,15 +330,15 @@ export function townHTML(game, townId) {
   const built = standing.map((id) => {
     const def = buildingDef(town.faction, id) || { name: id, desc: "" };
     const name = def.name.replace(/^Жилище: /, "").replace(/^Улучшение: /, "");
-    return `<button class="btn bld-row" data-act="town-hit" data-town="${town.id}" data-id="${id}"><img class="building-thumb" src="${buildingArt(def,town)}" alt=""><b>${def.tier?"Нанять: ":""}${esc(name)}</b><span>${esc(def.desc || "")}</span></button>`;
+    return `<button class="btn bld-row" data-act="town-hit" data-town="${town.id}" data-id="${id}"><img class="building-thumb" src="${buildingArt(def,town,p?.era||0)}" alt=""><b>${def.tier?"Нанять: ":""}${esc(name)}</b><span>${esc(def.desc || "")}</span></button>`;
   }).join("");
   const bar = standing.map((id) => {
     const def = buildingDef(town.faction, id) || { name: id };
     const name = (def.name || id).replace(/^Жилище: /, "").replace(/^Улучшение: /, "").split(" ")[0];
     return `<button class="btn small" data-act="town-hit" data-town="${town.id}" data-id="${id}">${esc(name)}</button>`;
   }).join("");
-  const fortSrc = town.buildings.fort || town.buildings.citadel || town.buildings.castle ? `art/sprites/castle-${town.faction === "inca" ? "emerald" : town.faction}.webp` : BLD_SPRITE.hall;
-  return `<div class="modal-back"><div class="sheet town-sheet">
+  const fortSrc = town.faction === "inca" ? "art/world-v4/temple.webp" : town.buildings.fort || town.buildings.citadel || town.buildings.castle ? `art/sprites/castle-${town.faction === "inca" ? "emerald" : town.faction}.webp` : BLD_SPRITE.hall;
+  return `<div class="modal-back"><div class="sheet town-sheet ${town.faction === "inca" ? "sun-court" : ""}">
     <div class="town-stage" style="background-image:url(art/towns/${town.faction}.jpg)">
       <img class="town-deco" src="${fortSrc}" alt="">
       <img class="town-steward" src="${eraArt(town.faction,playerById(game,town.owner)?.era||0,2)}" alt="">
@@ -350,7 +350,7 @@ export function townHTML(game, townId) {
     </header>
     <div class="town-body">
       <p class="kicker">${esc(ERAS[playerById(game,town.owner)?.era||0].name)} · ${town.builtToday?"Сегодня уже строили":"Можно построить одно здание"}</p>
-      <div class="city-actions">${you?`<button class="city-action" data-act="open-hall" data-town="${town.id}"><img src="art/world-v4/castle.webp" alt=""><b>Построить здание</b><small>Доход, оборона и новые отряды</small></button><button class="city-action" data-act="open-shop"><img src="art/world-v4/market.webp" alt=""><b>Открыть лавку</b><small>Бесплатные ресурсы и войска</small></button>`:""}</div>
+      ${town.faction === "inca" ? `<div class="sun-benefits"><strong>☀ Золотые террасы</strong><span>Храм Инти · +500 золота в день ${town.buildings.special ? "✓" : "после постройки"}</span><span>Школа стражниц · дополнительный прирост 3-го ранга ${town.buildings.horde ? "✓" : "после постройки"}</span></div>` : ""}<div class="city-actions">${you?`<button class="city-action" data-act="open-hall" data-town="${town.id}"><img src="art/world-v4/${town.faction === "inca" ? "temple" : "castle"}.webp" alt=""><b>Построить здание</b><small>Доход, оборона и новые отряды</small></button><button class="city-action" data-act="open-shop"><img src="art/world-v4/market.webp" alt=""><b>Открыть лавку</b><small>Бесплатные ресурсы и войска</small></button>`:""}</div>
       <details class="garrison-details"><summary>Армия и гарнизон</summary><div class="army-line"><span>${visitor ? esc(visitor.name) : "В гостях"}</span>${visitor ? armyRow(visitor.army, "hero:" + visitor.id, you) : `<p class="muted">Героини в городе нет. Поставьте её на замок.</p>`}</div>
       <div class="army-line"><span>Гарнизон</span>${armyRow(town.garrison, "garrison", you)}</div></details>
       <div class="row">
@@ -714,5 +714,5 @@ export { attackOptions, currentStack };
 
 export function resourceName(k){return RES_NAME[k]||k;}
 function factionChoice(){return `<fieldset class="faction-picker"><legend>Выберите свой народ</legend><div class="faction-grid">${FACTION_ORDER.map((id,i)=>`<label class="faction-option"><input type="radio" name="faction-choice" value="${id}" ${i===0?"checked":""}><span class="faction-card" style="--faction:${FACTIONS[id].color}"><img src="${eraArt(id,0,0)}" alt="${esc(FACTIONS[id].name)}"><b>${esc(FACTIONS[id].name)}</b><small>${esc(FACTIONS[id].blurb)}</small></span></label>`).join("")}</div><p class="muted">Соперницы принадлежат другим народам. В кампании развитие начинается с древности. В схватке можно выбрать эпоху.</p></fieldset>`;}
-function buildingArt(b,town,era=0){if(b.tier)return portraitFor(eraId(tiersOf(town.faction)[b.tier-1]?.id||"s_page",era));if(/Hall|capitol|fort|citadel|castle/.test(b.id))return `art/world-v4/${town.faction==="inca"?"temple":"castle"}.webp`;if(b.id==="market")return "art/world-v4/market.webp";if(/fort|citadel|castle/.test(b.id))return `art/sprites/castle-${town.faction==="inca"?"emerald":town.faction}.webp`;if(b.id.startsWith("mage"))return BLD_SPRITE.mage;return BLD_SPRITE[b.id]||BLD_SPRITE[b.id==="blacksmith"?"smith":b.id==="special"?"mage":"silo"];}
+function buildingArt(b,town,era=0){if(town.faction==="inca"&&b.id==="special")return "art/world-v4/temple.webp";if(b.tier)return portraitFor(eraId(tiersOf(town.faction)[b.tier-1]?.id||"s_page",era));if(/Hall|capitol|fort|citadel|castle/.test(b.id))return `art/world-v4/${town.faction==="inca"?"temple":"castle"}.webp`;if(b.id==="market")return "art/world-v4/market.webp";if(/fort|citadel|castle/.test(b.id))return `art/sprites/castle-${town.faction==="inca"?"emerald":town.faction}.webp`;if(b.id.startsWith("mage"))return BLD_SPRITE.mage;return BLD_SPRITE[b.id]||BLD_SPRITE[b.id==="blacksmith"?"smith":b.id==="special"?"mage":"silo"];}
 function eraPanel(game,town){const s=eraStatus(game,town),p=playerById(game,town.owner);return `<section class="era-panel"><div class="era-steps">${ERAS.map(e=>`<span class="${e.id===s.current?"current":e.id<s.current?"done":""}">${e.id<s.current?"✓ ":""}${e.name}</span>`).join("")}</div>${s.next?`<div class="era-preview"><img src="${eraArt(p.faction,s.next.id,0)}" alt="Образ следующей эпохи"><div><h3>Открыть: ${s.next.name}</h3><p>${esc(s.next.desc)}</p><p class="price">${esc(costStr(s.next.cost))}</p><p class="muted">${s.reasons.map(r=>r.startsWith("building:")?"Нужно здание: "+(buildingDef(town.faction,r.split(":")[1])?.name||r):r.startsWith("resource:")?"Не хватает: "+r.split(":")[2]+" "+resourceName(r.split(":")[1]):r).map(esc).join("<br>")||"Все условия выполнены"}</p><button class="btn primary" data-act="research-era" data-town="${town.id}" ${s.ready&&p.control==="human"?"":"disabled"}>Перейти в новую эпоху</button></div></div>`:`<h3>Современная цивилизация</h3><p>Ваши воительницы используют новейшее снаряжение.</p>`}</section>`;}

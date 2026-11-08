@@ -1,6 +1,6 @@
 /** Статические данные «Лаковых королевств». Оригинальный мир, механика близкая к HoMM III. */
 
-export const GAME_VERSION = "2.5.1";
+export const GAME_VERSION = "2.5.2";
 
 export const RES_KEYS = ["gold", "lacquer", "resin", "pigment", "amber", "crystal", "pearl"];
 export const RES_NAME = {
@@ -489,6 +489,8 @@ export function buildingDef(faction, id) {
   if (faction === "inca") {
     table.special={name:"Храм Инти",cost:{gold:2500,amber:5},req:["mage1"],desc:"+500 золота в день от солнечных террас."};
     table.horde.name="Школа стражниц террас";
+    table.horde.hordeTier=3; table.horde.req=["dw3"];
+    table.horde.desc="Дополнительный базовый недельный прирост стражниц террас (3-й ранг).";
   }
   const d = table[id];
   return d ? Object.assign({ id }, d) : null;
@@ -653,7 +655,7 @@ export const FLAVOR_SIGNS = [
 Object.assign(FACTIONS.scarlet, {name:"Люди Алого двора", blurb:"Стойкая пехота, сильная защита и воинская дисциплина."});
 Object.assign(FACTIONS.emerald, {name:"Лесные эльфийки", blurb:"Меткие стрелки, быстрые разведчицы и магия природы."});
 Object.assign(FACTIONS.onyx, {name:"Тёмные эльфийки", blurb:"Ночные воительницы, проклятия и ударные отряды."});
-FACTIONS.inca = {id:"inca", name:"Солнечные инки", epithet:"Двор Солнца", town:"Золотая терраса", blurb:"Фэнтезийный народ, вдохновлённый инками: солнечные жрицы, пращницы и стража Анд.", color:"#22b8bd", deep:"#123a40", gold:"#f2ce73", castle:"art/castle-emerald.jpg"};
+FACTIONS.inca = {id:"inca", name:"Племя Солнца", epithet:"Двор Солнца", town:"Золотая терраса", blurb:"Фэнтезийный народ, вдохновлённый инками: солнечные жрицы, пращницы и стража Анд.", color:"#e8ad43", deep:"#553515", gold:"#f2ce73", castle:"art/castle-emerald.jpg"};
 export const ERAS = [
   {id:0, name:"Древность", day:1, desc:"Копья, луки, солнечные храмы и первые города.", cost:{}, req:[]},
   {id:1, name:"Средневековье", day:8, desc:"Более сильные войска, арбалеты и лаковые доспехи. Все ваши отряды получают новое снаряжение.", cost:{gold:6000, lacquer:12, resin:8}, req:["townHall","blacksmith"]},

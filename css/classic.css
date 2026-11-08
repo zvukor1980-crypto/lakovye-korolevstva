@@ -44,3 +44,12 @@
 }
 @media(orientation:landscape) and (max-height:540px){.shop-tabs button{min-height:46px}.shop-tabs{padding:5px 0}.sheeth{padding:6px 10px}.sheeth h2{font-size:21px}.sheeth .btn{min-height:40px}}
 @media(prefers-reduced-motion:reduce){.portal-tile,.btn,.cmd{transition:none}}
+
+/* Solar court uses the existing temple art and a warm gold palette. */
+.sun-court .town-stage{background-color:#543719;background-blend-mode:soft-light;border-bottom:2px ridge #e6be67}
+.sun-court .town-deco{left:3%;height:95%;max-width:62%;object-fit:contain;filter:drop-shadow(0 4px 8px #251307)}
+.sun-court .town-caption{color:#ffe6a2;text-shadow:0 2px 4px #140e06}
+.sun-court .sheeth{background:linear-gradient(100deg,#654820,#302417)}
+.sun-benefits{display:grid;gap:7px;padding:12px 14px;margin:8px 0 14px;border:1px solid #ae8947;border-left:4px solid #edc46b;background:linear-gradient(110deg,#66502466,#28251c);color:#e9d6ab;font-size:12px;line-height:1.5}
+.sun-benefits strong{font-size:18px;color:#ffe0a0}.sun-court .city-action{background:linear-gradient(130deg,#584827,#303525)}
+@media(orientation:landscape) and (max-height:540px){.sun-benefits{gap:3px;padding:8px 12px}.sun-benefits strong{font-size:15px}}
