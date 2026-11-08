@@ -14,7 +14,7 @@ import {
   reachable, startFight,
 } from "./combat.js";
 import {
-  battleCamera, clampCamera, drawBattle, drawMap, focusHex, preloadFactionArt, screenToHex, screenToTile, tileCenter,
+  battleCamera, clampCamera, drawBattle, drawMap, drawMinimap, focusHex, preloadFactionArt, screenToHex, screenToTile, tileCenter,
 } from "./render.js";
 import * as ui from "./ui.js";
 import * as saves from "./save.js";
@@ -121,8 +121,8 @@ function ensureShell() {
   if (document.getElementById("cv")) return;
   app.innerHTML = `<div class="game">
     <div class="topbar" id="topbar"></div>
-    <div class="stage"><canvas id="cv"></canvas><canvas id="minimap" width="192" height="192"></canvas></div>
-    <div class="dock" id="dock"></div>
+    <div class="stage"><canvas id="cv"></canvas></div>
+    <aside class="command-panel"><div class="atlas-frame"><span>Карта королевства</span><canvas id="minimap" aria-label="Обзор карты — коснитесь для перемещения" width="192" height="144"></canvas></div><div class="dock" id="dock"></div></aside>
     <div id="modal"></div>
   </div>`;
   bindPointer(document.getElementById("cv"));
@@ -262,6 +262,7 @@ function frame(t) {
     } else {
       clampCamera(S.cam, S.game, rect.width, rect.height);
       drawMap(ctx, S.game, view);
+      const mini=document.getElementById("minimap");if(mini&&(!S.miniAt||t-S.miniAt>200)){drawMinimap(mini,S.game,human().id,S.cam,rect.width,rect.height);S.miniAt=t;}
     }
     const now = performance.now();
     for (const id of Object.keys(S.fx)) if (now - S.fx[id].t0 > 900) delete S.fx[id];

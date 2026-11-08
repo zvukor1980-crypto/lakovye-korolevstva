@@ -32,7 +32,7 @@ const GEMS = {
 
 export function menuHTML(opts) {
  const tile=(act,title,sub,art,cls='')=>`<button class="portal-tile ${cls}" data-act="${act}"><img src="${art}" alt=""><span><b>${title}</b><small>${sub}</small></span><i aria-hidden="true">↗</i></button>`;
- return `<div class="screen royal-home"><div class="home-title"><span class="kicker">ЛАКОВЫЕ КОРОЛЕВСТВА</span><h1>Ваше царство.<br>Ваша история.</h1><p>Четыре народа. Путешествие сквозь эпохи.</p><span class="version-badge">Версия ${GAME_VERSION} · Атлас королевств</span></div><div class="home-hub"><div class="portal-grid">${opts.continue?tile('continue','Продолжить','Вернуться в своё королевство','art/world/eras-v3.webp','portal-wide'):''}${tile('campaign','Приключение','История и новые земли','art/world/menu-dawn.webp')}${tile('skirmish','Своя игра','Выберите народ, карту и эпоху','art/world/battle-valley.webp')}${tile('bestiary','Героини','Образы всех эпох','art/modern-v3/modern-0-1.webp','portrait-tile')}${tile('load','Сохранения','Продолжите выбранную партию','art/world/eras-v3.webp')}</div><div class="home-tools"><button class="btn ghost" data-act="settings">⚙ Настройки</button><button class="btn ghost" data-act="help">? Как играть</button><button class="btn ghost" data-act="check-update">↻ Обновить · ${GAME_VERSION}</button></div></div></div>`;
+ return `<div class="screen royal-home"><div class="home-title"><span class="kicker">ЛАКОВЫЕ КОРОЛЕВСТВА</span><h1>Лаковые<br>королевства</h1><p>Четыре народа. Путешествие сквозь эпохи.</p><span class="version-badge">Версия ${GAME_VERSION} · Хроники четырёх королевств</span></div><div class="home-hub"><div class="portal-grid">${opts.continue?tile('continue','Продолжить','Вернуться в своё королевство','art/world/eras-v3.webp','portal-wide'):''}${tile('campaign','Приключение','История и новые земли','art/world/menu-dawn.webp')}${tile('skirmish','Своя игра','Выберите народ, карту и эпоху','art/world/battle-valley.webp')}${tile('bestiary','Героини','Образы всех эпох','art/modern-v3/modern-0-1.webp','portrait-tile')}${tile('load','Сохранения','Продолжите выбранную партию','art/world/eras-v3.webp')}</div><div class="home-tools"><button class="btn ghost" data-act="settings">⚙ Настройки</button><button class="btn ghost" data-act="help">? Как играть</button><button class="btn ghost" data-act="check-update">↻ Обновить · ${GAME_VERSION}</button></div></div></div>`;
 }
 
 export function helpHTML() {
@@ -172,7 +172,7 @@ export function topHTML(game) {
 
 export function dockHTML(game, hero, mode, flags = {}) {
   if (mode === "battle" || mode === "deploy") return battleDock(game, mode, flags);
-  const img = hero ? hero.portrait : "icons/icon-192.png";
+  const img = hero ? ((game.players[hero.player].era||0)===2?hero.portrait:`art/royal-v5/queen-${FACTION_ORDER.indexOf(hero.faction)}.webp`) : "icons/icon-192.png";
   const nm = hero ? hero.name : "—";
   let coach = "";
   try {
@@ -202,7 +202,7 @@ export function dockHTML(game, hero, mode, flags = {}) {
       <button class="cmd" data-act="open-overview"><b>◉</b>Царство</button>
       <button class="cmd" data-act="open-shop"><b>▣</b>Лавка</button>
       <button class="cmd" data-act="open-quest"><b>✦</b>Цель</button>
-    </div>`;
+    </div><div class="sidebar-army">${hero?armyRow(hero.army,"hero:"+hero.id,false):""}</div>`;
 }
 
 function battleDock(game, mode, flags) {
@@ -449,7 +449,7 @@ function slotBtn(hero, id, label) {
   const aid = hero.artifacts[id];
   const a = aid && ARTIFACTS[aid];
   return `<button class="aslot ${a ? "on" : ""}" data-act="unequip" data-hero="${hero.id}" data-slot="${id}">
-    <div class="tag">${esc(label)}</div>
+    <span class="slot-symbol" aria-hidden="true">${({head:"♛",neck:"◇",cloak:"◈",weapon:"⚔",feet:"♟",shield:"⛨",chest:"♜",ring1:"○",ring2:"○"})[id]||"✦"}</span><div class="tag">${esc(label)}</div>
     <div>${a ? esc(a.name) : "—"}</div>
   </button>`;
 }
@@ -472,34 +472,16 @@ export function heroHTML(game, heroId) {
     return `<button class="btn small" data-act="equip" data-hero="${hero.id}" data-i="${i}">${esc(a.name)}</button>`;
   }).join(" ");
   const next = xpForLevel(hero.level + 1);
-  return `<div class="modal-back"><div class="sheet">
-    <header class="sheeth"><h2>${esc(hero.name)}</h2><button class="btn small ghost" data-act="close-modal">Закрыть</button></header>
-    <div class="body">
-      <p class="kicker">${esc(FACTIONS[hero.faction].name)} · уровень ${hero.level} · опыт ${hero.xp}/${next}</p>
-      <div class="hero-face">
-        <img src="${esc(hero.portrait)}" alt="">
-        <div class="stats">
-          <div class="stat"><b>${e.attack}</b><span>атака</span></div>
-          <div class="stat"><b>${e.defense}</b><span>защита</span></div>
-          <div class="stat"><b>${e.power}</b><span>сила</span></div>
-          <div class="stat"><b>${e.knowledge}</b><span>знание</span></div>
-        </div>
-      </div>
-      <p class="muted">мораль ${e.morale} · удача ${e.luck} · ход ${hero.movement}/${maxMove(hero)} · мана ${hero.mana}/${maxMana(hero)} · обзор ${e.sight}</p>
-      <h3>Снаряжение</h3>
-      <div class="slots gear">${left}${right}${misc}</div>
-      <h3>Навыки</h3>
-      <div class="stack">${skills}</div>
-      <h3>Войско</h3>
-      ${armyRow(hero.army, "hero:" + hero.id, you)}
-      <div class="row">
-        <button class="btn small" data-act="split-ask" data-hero="${hero.id}">Разделить</button>
-        <button class="btn small" data-act="next-hero">Следующая</button>
-        <button class="btn small ghost" data-act="hero-wait">Снять выделение</button>
-      </div>
-      <h3>Сумка</h3>
-      <div class="stack">${bag || `<span class="muted">пусто</span>`}</div>
-    </div></div></div>`;
+  const royal=(game.players[hero.player].era||0)===2?hero.portrait:`art/royal-v5/queen-${FACTION_ORDER.indexOf(hero.faction)}.webp`;
+  return `<div class="modal-back"><div class="sheet hero-sheet">
+    <header class="sheeth"><h2>${esc(hero.name)} · ${hero.level} ур.</h2><button class="btn small ghost" data-act="close-modal">На карту</button></header>
+    <div class="body hero-body"><section class="hero-record"><p class="kicker">${esc(FACTIONS[hero.faction].name)}</p>
+      <div class="hero-face"><img src="${royal}" alt="${esc(hero.name)}"><div class="stats">${[["⚔",e.attack,"Атака"],["⛨",e.defense,"Защита"],["✦",e.power,"Магия"],["▤",e.knowledge,"Знание"]].map(([ico,n,label])=>`<div class="stat"><span class="stat-icon">${ico}</span><b>${n}</b><span>${label}</span></div>`).join('')}</div></div>
+      <div class="hero-vitals"><span>Опыт <b>${hero.xp}/${next}</b></span><span>Мана <b>${hero.mana}/${maxMana(hero)}</b></span><span>Ход <b>${hero.movement}/${maxMove(hero)}</b></span><span>Мораль <b>${e.morale}</b> · Удача <b>${e.luck}</b></span></div>
+      <h3>Мастерство</h3><div class="hero-skills">${skills}</div></section>
+      <section class="hero-equipment"><h3>Снаряжение</h3><div class="paperdoll"><div class="gear-column">${left}</div><div class="royal-figure"><img src="${royal}" alt="Героиня в полный рост"></div><div class="gear-column">${right}</div></div><div class="gear-trinkets">${misc}</div></section>
+      <section class="hero-army"><h3>Армия</h3>${armyRow(hero.army,"hero:"+hero.id,you)}<div class="row"><button class="btn small" data-act="split-ask" data-hero="${hero.id}">Разделить отряд</button><button class="btn small" data-act="open-spell">Книга магии</button><button class="btn small" data-act="next-hero">Следующая героиня</button></div><details><summary>Сумка · ${hero.backpack.length} предметов</summary><div class="stack">${bag||`<p class="muted">Найдите артефакт на карте или получите в лавке.</p>`}</div></details></section></div></div></div>`;
+
 }
 
 export function spellbookHTML(game, hero) {

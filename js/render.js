@@ -1,6 +1,6 @@
 /** Изометрия карты и гексагональный бой. */
 
-import { CREATURES, FACTIONS, portraitFor } from "./data.js";
+import { CREATURES, FACTIONS, FACTION_ORDER, portraitFor } from "./data.js";
 import { BCOLS, BROWS, hexDist, hexNeighbors } from "./combat.js";
 import {
   FLAG_FORD, FLAG_RIVER, FLAG_ROAD, T_DIRT, T_FOREST, T_GRASS, T_HILL, T_LAVA,
@@ -342,7 +342,7 @@ function drawShroud(ctx, cells, state, playerId, S, dpr, kx, ky, ox, oy, w, h, b
 
 function drawPine(ctx, sx, sy, zoom, seed) {
   const img = painted("art/world-v4/forest.webp");
-  const h = (42 + (Math.abs(seed) % 16)) * zoom;
+  const h = (33 + (Math.abs(seed) % 10)) * zoom;
   if (img) {
     drawFigure(ctx, img, sx, sy + 4 * zoom, h, 0, { seed, bob: 0, sway: 0.02 });
     return;
@@ -411,7 +411,7 @@ export function drawMap(ctx, state, view) {
     if (type === T_FOREST || type === T_HILL) {
       const ox = ((hsh & 15) - 7) * cam.zoom;
       drawPine(ctx, s.x + ox, s.y, cam.zoom, hsh);
-      if ((hsh & 7) === 0) drawPine(ctx, s.x - ox * 0.6, s.y + 3 * cam.zoom, cam.zoom * 0.86, hsh >> 3);
+      if ((hsh & 15) === 0) drawPine(ctx, s.x - ox * 0.6, s.y + 3 * cam.zoom, cam.zoom * 0.86, hsh >> 3);
     } else if (type === T_MOUNTAIN) {
       drawPeak(ctx, s.x, s.y, cam.zoom, time, x);
     } else if (type === T_GRASS && (hsh & 15) === 0) {
@@ -443,7 +443,7 @@ export function drawMap(ctx, state, view) {
       ctx.moveTo(bx-5,by-flap);ctx.quadraticCurveTo(bx-2,by-3,bx,by);ctx.quadraticCurveTo(bx+2,by-3,bx+5,by-flap);ctx.stroke();
     }ctx.restore();
   }
-  drawInsetMap(ctx, state, playerId, w, h);
+  // The interactive overview lives in the framed control panel.
 }
 
 function drawTuft(ctx, dw, dh, x, y, type) {
@@ -871,7 +871,7 @@ function drawHero(ctx, state, hero, cam, w, h, time, selected) {
   const c = tileCenter(hero.x, hero.y);
   const s = toScreen(c.x, c.y, cam, w, h);
   const z = cam.zoom;
-  const src = hero.portrait || rideSrc(hero.rosterId);
+  const src = (state.players[hero.player].era||0)===2 ? hero.portrait : `art/royal-v5/queen-${FACTION_ORDER.indexOf(hero.faction)}.webp`;
   primeArt(src);
   primeArt(hero.portrait);
   const img = painted(src) || painted(hero.portrait);
@@ -1082,7 +1082,7 @@ export function drawBattle(ctx, battle, view) {
 
 function drawSideHero(ctx, hero, w, h, time, flip) {
   if (!hero) return;
-  const src = hero.portrait || rideSrc(hero.rosterId);
+  const src = (state.players[hero.player].era||0)===2 ? hero.portrait : `art/royal-v5/queen-${FACTION_ORDER.indexOf(hero.faction)}.webp`;
   if (src) primeArt(src);
   if (hero.portrait) primeArt(hero.portrait);
   const img = (src && painted(src)) || (hero.portrait && painted(hero.portrait));
