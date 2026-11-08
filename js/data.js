@@ -1,6 +1,6 @@
 /** Статические данные «Лаковых королевств». Оригинальный мир, механика близкая к HoMM III. */
 
-export const GAME_VERSION = "2.5.0";
+export const GAME_VERSION = "2.5.1";
 
 export const RES_KEYS = ["gold", "lacquer", "resin", "pigment", "amber", "crystal", "pearl"];
 export const RES_NAME = {
